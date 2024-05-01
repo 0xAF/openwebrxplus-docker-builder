@@ -1,0 +1,131 @@
+#!/bin/bash
+source "$(dirname "$(realpath ${BASH_SOURCE[0]})")"/lib/log.sh
+
+PRODUCT=openwebrxplus
+DATE=$(date +%F)
+
+MAKEFLAGS=-j10
+
+# to use APT proxy, run: ./image start-apt-cache
+APT_PROXY=
+APT_PROXY="http://$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p'):3142"
+
+log "Builder for OpenWebRX+ Docker Image"
+echo
+
+usage() {
+  log war "Usage: $0 [command]"
+  log war '. commands:'
+  log war '... build - build the image'
+  log war '... run - run container from latest image'
+  log war '... dev - start container with bash shell'
+  log war '... start-apt-cache - to start apt-cache docker container'
+  log war '... stop-apt-cache - to stop apt-cache docker container'
+  log war "... add-admin - to add 'admin' user to running docker container"
+  echo
+  log war "You can specify extra variables like 'VAR=VAL $0 [command]'"
+  log war "'MAKEFLAGS=\"-j4\"' - this will be used as 'MAKEFLAGS' inside the docker builder"
+}
+
+start-apt-cache() {
+  pushd apt-cache
+  docker compose up -d
+  popd
+}
+
+stop-apt-cache() {
+  pushd apt-cache
+  docker compose down -v
+  popd
+}
+
+add-admin() {
+	docker exec -it ${PRODUCT} /usr/bin/openwebrx admin adduser admin
+}
+
+get_owrxp_version() {
+  curl https://raw.githubusercontent.com/luarvique/openwebrx/master/owrx/version.py 2>/dev/null |
+    grep -v "looseversion" |
+    grep "_versionstring" |
+    cut -d '"' -f 2
+}
+
+build() {
+  local VER=$(get_owrxp_version)
+  log inf "Building '${PRODUCT}:${VER}'"
+  echo
+
+  mkdir -p cache
+  # create docker builder https://docs.docker.com/build/building/multi-platform/
+  # we enable networking so the builder container has access to the host network (needed for registry)
+  log inf  "Creating docker builder for multiarch..."
+  docker buildx create \
+    --name owrxp-builder \
+    --driver docker-container \
+    --bootstrap \
+    --use \
+    --driver-opt network=host \
+    2>/dev/null || true # ignore errors if already created
+
+  log inf "Building the image for AMD64, ARM64 and ARM32v7."
+  time docker buildx build \
+    --platform linux/amd64 \
+    --build-context mycache=$(pwd)/cache \
+    --cache-from type=local,src=$(pwd)/cache \
+    --cache-to type=local,dest=$(pwd)/cache \
+    --build-arg MAKEFLAGS="${MAKEFLAGS}" \
+    --build-arg BUILD_DATE="${DATE}" \
+    --build-arg PRODUCT="${PRODUCT}" \
+    --build-arg OWRXVERSION="${VER}" \
+    --build-arg APT_PROXY="${APT_PROXY}" \
+    -t ${PRODUCT}:${VER} \
+    -t ${PRODUCT} \
+    --pull \
+    --progress=plain \
+    --load \
+    ./buildfiles
+  #--push
+  #--platform linux/amd64,linux/arm64,linux/arm/v7
+  #--cache-from=type=local,src=`pwd`/cache
+  #--cache-to=type=local,dest=`pwd`/cache
+
+
+  log inf "Removing docker builder (keeping state/caches for next use)..."
+  docker buildx rm --keep-state owrxp-builder # keep state is needed to keep the caches for the next build
+
+}
+
+
+run() {
+  mkdir -p work/owrx/var work/owrx/etc
+	docker run --rm \
+		-h ${PRODUCT} \
+		--name ${PRODUCT} \
+		--device /dev/bus/usb \
+		-p 8073:8073 \
+		-v ./work/owrx/var:/var/lib/openwebrx \
+		-v ./work/owrx/etc:/etc/openwebrx \
+		${PRODUCT}
+}
+
+
+dev() {
+	mkdir -p work/owrx/var work/owrx/etc
+	docker run -it --rm \
+		-p 8073:8073 \
+		--device /dev/bus/usb \
+		-v ./work/owrx/var:/var/lib/openwebrx \
+		-v ./work/owrx/etc:/etc/openwebrx \
+		--name ${PRODUCT}-dev \
+		--entrypoint /init \
+		-v `pwd`/cache:/build_cache \
+		-e http_proxy="${APT_PROXY}" \
+		${PRODUCT} /bin/bash
+}
+
+if [[ $(type -t $1) == 'function' ]]; then
+  $1 $@
+else
+  [ "$1" != "" ] && log err "Command '$1' not found..." && echo
+  usage
+fi

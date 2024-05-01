@@ -1,0 +1,26 @@
+diff --git a/debian/control b/debian/control
+index bb79f64..a0313a1 100644
+--- a/debian/control
++++ b/debian/control
+@@ -13,7 +13,7 @@ Homepage: https://github.com/pothosware/SoapyAirspyHF/wiki
+ Vcs-Git: https://github.com/pothosware/SoapyAirspyHF.git
+ Vcs-Browser: https://github.com/pothosware/SoapyAirspyHF
+ 
+-Package: soapysdr0.7-module-airspyhf
++Package: soapysdr0.8-module-airspyhf
+ Architecture: any
+ Multi-Arch: same
+ Depends: ${shlibs:Depends}, ${misc:Depends}
+@@ -22,7 +22,7 @@ Description: Soapy AirspyHF - AirspyHF device support for Soapy SDR.
+ 
+ Package: soapysdr-module-airspyhf
+ Architecture: all
+-Depends: soapysdr0.7-module-airspyhf, ${misc:Depends}
++Depends: soapysdr0.8-module-airspyhf, ${misc:Depends}
+ Description: Soapy AirspyHF - AirspyHF device support for Soapy SDR.
+  A Soapy module that supports AirspyHF devices within the Soapy API.
+  .
+diff --git a/debian/soapysdr0.7-module-airspyhf.install b/debian/soapysdr0.8-module-airspyhf.install
+similarity index 100%
+rename from debian/soapysdr0.7-module-airspyhf.install
+rename to debian/soapysdr0.8-module-airspyhf.install

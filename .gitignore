@@ -1,0 +1,5 @@
+cache/
+work/
+apt-cache/apt-cacher-ng/
+.vscode/
+old/
