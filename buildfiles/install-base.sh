@@ -117,6 +117,7 @@ MD5SUMS='
 a7281fb46aa35f0d87b13b343c247381  SDRplay_RSP_API-ARM64-3.07.1.run
 41fea62ae45d76aaafd6437483386d7f  SDRplay_RSP_API-Linux-3.07.1.run
 c739ba0e6c7769957ca79ab05e46f081  SDRplay_RSP_API-Linux-3.14.0.run
+b7317257d7498c2fa22d6d53b90f4611  SDRplay_RSP_API-Linux-3.15.1.run
 '
 mkdir -p sdrplay
 pushd sdrplay
@@ -149,7 +150,7 @@ _EOF_
 chmod +x /etc/s6-overlay/s6-rc.d/sdrplay/run
 
 # link the binary to its location
-ln -s /opt/sdrplay_api/sdrplay_apiService /usr/local/bin/
+ln -sf /opt/sdrplay_api/sdrplay_apiService /usr/local/bin/
 
 popd
 rm -rf /tmp/sdrplay

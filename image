@@ -1,10 +1,11 @@
 #!/bin/bash
 source "$(dirname "$(realpath ${BASH_SOURCE[0]})")"/lib/log.sh
 
+DOCKER_HUB_USER=slechev
 PRODUCT=openwebrxplus
 DATE=$(date +%F)
 
-MAKEFLAGS=-j10
+MAKEFLAGS=-j5
 
 # to use APT proxy, run: ./image start-apt-cache
 APT_PROXY=
@@ -16,7 +17,7 @@ echo
 usage() {
   log war "Usage: $0 [command]"
   log war '. commands:'
-  log war '... build - build the image'
+  log war '... build - build the image and push to hub.docker.com'
   log war '... run - run container from latest image'
   log war '... dev - start container with bash shell'
   log war '... start-apt-cache - to start apt-cache docker container'
@@ -25,6 +26,8 @@ usage() {
   echo
   log war "You can specify extra variables like 'VAR=VAL $0 [command]'"
   log war "'MAKEFLAGS=\"-j4\"' - this will be used as 'MAKEFLAGS' inside the docker builder"
+  echo
+  log war "NOTE: to clear the caches, you should remove the 'buildx' volume and the 'cache' folder."
 }
 
 start-apt-cache() {
@@ -51,6 +54,11 @@ get_owrxp_version() {
 }
 
 build() {
+  if ! docker ps | grep -q apt-cacher-ng; then
+    echo apt-cacher-ng is not running
+    exit 1
+  fi
+
   local VER=$(get_owrxp_version)
   log inf "Building '${PRODUCT}:${VER}'"
   echo
@@ -69,7 +77,7 @@ build() {
 
   log inf "Building the image for AMD64, ARM64 and ARM32v7."
   time docker buildx build \
-    --platform linux/amd64 \
+    --platform linux/amd64,linux/arm64,linux/arm/v7 \
     --build-context mycache=$(pwd)/cache \
     --cache-from type=local,src=$(pwd)/cache \
     --cache-to type=local,dest=$(pwd)/cache \
@@ -78,16 +86,18 @@ build() {
     --build-arg PRODUCT="${PRODUCT}" \
     --build-arg OWRXVERSION="${VER}" \
     --build-arg APT_PROXY="${APT_PROXY}" \
-    -t ${PRODUCT}:${VER} \
-    -t ${PRODUCT} \
+    -t ${DOCKER_HUB_USER}/${PRODUCT}:${VER} \
+    -t ${DOCKER_HUB_USER}/${PRODUCT} \
     --pull \
-    --progress=plain \
-    --load \
+    --push \
     ./buildfiles
-  #--push
-  #--platform linux/amd64,linux/arm64,linux/arm/v7
-  #--cache-from=type=local,src=`pwd`/cache
-  #--cache-to=type=local,dest=`pwd`/cache
+
+    #--progress=plain \
+    #--load \
+    #--platform linux/amd64,linux/arm64,linux/arm/v7 \
+    #--platform linux/amd64 \
+    #--cache-from=type=local,src=`pwd`/cache
+    #--cache-to=type=local,dest=`pwd`/cache
 
 
   log inf "Removing docker builder (keeping state/caches for next use)..."
