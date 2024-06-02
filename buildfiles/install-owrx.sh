@@ -17,6 +17,9 @@ echo ${PRODUCT:-}-${OWRXVERSION:-${BUILD_DATE}} > /build-image
 apt update
 
 pinfo "Installing prebuilt deb packages..."
+dpkg -i $BUILD_CACHE/librtlsdr0_*.deb
+#dpkg -i $BUILD_CACHE/librtlsdr-dev_*.deb
+dpkg -i $BUILD_CACHE/rtl-sdr_*.deb
 dpkg -i $BUILD_CACHE/soapysdr0.8-module-airspyhf_*.deb
 dpkg -i $BUILD_CACHE/soapysdr-module-airspyhf_*.deb
 dpkg -i $BUILD_CACHE/soapysdr0.8-module-plutosdr_*.deb

@@ -23,6 +23,27 @@ apt install -y --no-install-recommends $BUILD_PACKAGES
 
 mkdir -p $BUILD_ROOTFS/usr/local/bin
 
+
+# has deb
+if ! ls librtlsdr0_*.deb 1>/dev/null 2>&1; then
+  pinfo "Install RTL-SDR Blog (v4)..."
+  if [ -d "rtl-sdr-blog" ]; then
+    cd rtl-sdr-blog
+    git checkout .
+    git checkout master
+    git pull
+    cd ..
+  else
+    git clone https://github.com/rtlsdrblog/rtl-sdr-blog
+  fi
+  # cmakebuild SoapyPlutoSDR 93717b32ef052e0dfa717aa2c1a4eb27af16111f
+  cd rtl-sdr-blog
+  dpkg-buildpackage -b --no-sign
+  cd ..
+else
+  pinfo "PlutoSDR already built..."
+fi
+
 # has deb
 if ! ls soapysdr0.8-module-airspyhf*.deb 1>/dev/null 2>&1; then
   pinfo "Install AirSpyHF..."
@@ -169,7 +190,7 @@ fi
 #fi
 
 
-# TODO: has deb
+# has deb
 if ! ls runds-connector_*.deb 1>/dev/null 2>&1; then
   pinfo "Install RUNDS..."
   if [ -d "runds_connector" ]; then
@@ -419,8 +440,6 @@ if ! [ -f $BUILD_ROOTFS/usr/bin/satdump ]; then
 else
   pinfo "satdump built..."
 fi
-
-
 
 # no deb
 if ! [ -d $BUILD_ROOTFS/usr/share/aprs-symbols ]; then
