@@ -1,5 +1,5 @@
 # Build the base image
-FROM debian:bookworm-slim as base
+FROM debian:bookworm-slim AS base
 ARG MAKEFLAGS
 ARG APT_PROXY
 ADD files/sdrplay /tmp/sdrplay
@@ -8,7 +8,7 @@ COPY install-base.sh common.sh /tmp/
 RUN --mount=type=cache,target=/build_cache \
 	/tmp/install-base.sh
 
-FROM base as sources
+FROM base AS sources
 ARG MAKEFLAGS
 ARG APT_PROXY
 ARG BUILD_DATE
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/build_cache \
     --mount=type=bind,source=files,target=/files \
 	/tmp/install-sources.sh
 
-FROM base as final
+FROM base AS final
 # FROM sources as final
 ARG PRODUCT=openwebrxplus
 #ARG VARIANT=nightly

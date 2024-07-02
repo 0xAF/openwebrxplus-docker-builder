@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrxA /tmp/openwebrx
+mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrx /tmp/openwebrx
+
 if ! [ -f /etc/openwebrx/.remove-this-file-to-overwrite-folder-with-defaults ]; then
   echo;echo;echo;
   echo +++ overwriting /etc/openwebrx with defaults from package.
@@ -24,9 +25,15 @@ if [[ ! -f /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf ]] ; then
 temporary_directory = /tmp/openwebrx
 EOF
 fi
-if [[ ! -z "${OPENWEBRX_ADMIN_USER:-}" ]] && [[ ! -z "${OPENWEBRX_ADMIN_PASSWORD:-}" ]] ; then
+
+if [[ -n "${OPENWEBRX_ADMIN_USER:-}" ]] && [[ -n "${OPENWEBRX_ADMIN_PASSWORD:-}" ]] ; then
+  echo;echo;echo
+  echo "+++ Adding admin user ${OPENWEBRX_ADMIN_USER:-}"
   if ! python3 openwebrx.py admin --silent hasuser "${OPENWEBRX_ADMIN_USER}" ; then
     OWRX_PASSWORD="${OPENWEBRX_ADMIN_PASSWORD}" python3 openwebrx.py admin --noninteractive adduser "${OPENWEBRX_ADMIN_USER}"
+    echo "+++ Admin user ${OPENWEBRX_ADMIN_USER:-} added."
+  else
+    echo "+++ Admin user ${OPENWEBRX_ADMIN_USER:-} already exist."
   fi
 fi
 
@@ -38,9 +45,11 @@ _term() {
 
 trap _term SIGTERM SIGINT
 
-echo "Processes before start..."
+echo "+++ List of processes before start..."
 ps xa
 
+echo "+++ OpenWebRX+ starting."
+# shellcheck disable=SC2068
 openwebrx $@ &
 
 child=$!

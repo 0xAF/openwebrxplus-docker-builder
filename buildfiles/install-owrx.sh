@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source /tmp/common.sh
 
 echo;echo;echo;echo;echo;echo;echo
@@ -11,27 +12,27 @@ pinfo "PLATFORM: ${PLATFORM}"
 pinfo "PRODUCT: ${PRODUCT}"
 pinfo "VERSION: ${OWRXVERSION}"
 
-echo ${BUILD_DATE:-} > /build-date
-echo ${PRODUCT:-}-${OWRXVERSION:-${BUILD_DATE}} > /build-image
+echo "${BUILD_DATE:-}" > /build-date
+echo "${PRODUCT:-}"-"${OWRXVERSION:-${BUILD_DATE}}" > /build-image
 
 apt update
 
 pinfo "Installing prebuilt deb packages..."
-dpkg -i $BUILD_CACHE/librtlsdr0_*.deb
+dpkg -i "$BUILD_CACHE"/librtlsdr0_*.deb
 #dpkg -i $BUILD_CACHE/librtlsdr-dev_*.deb
-dpkg -i $BUILD_CACHE/rtl-sdr_*.deb
-dpkg -i $BUILD_CACHE/soapysdr0.8-module-airspyhf_*.deb
-dpkg -i $BUILD_CACHE/soapysdr-module-airspyhf_*.deb
-dpkg -i $BUILD_CACHE/soapysdr0.8-module-plutosdr_*.deb
-dpkg -i $BUILD_CACHE/soapysdr-module-plutosdr_*.deb
-dpkg -i $BUILD_CACHE/runds-connector_*.deb
+dpkg -i "$BUILD_CACHE"/rtl-sdr_*.deb
+dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-airspyhf_*.deb
+dpkg -i "$BUILD_CACHE"/soapysdr-module-airspyhf_*.deb
+dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-plutosdr_*.deb
+dpkg -i "$BUILD_CACHE"/soapysdr-module-plutosdr_*.deb
+dpkg -i "$BUILD_CACHE"/runds-connector_*.deb
 
 pinfo "Installing rest of the binaries from rootfs..."
-cp -a $BUILD_ROOTFS/* /
+cp -a "$BUILD_ROOTFS"/* /
 ldconfig /etc/ld.so.conf.d
 
-pinfo "This is a RELEASE build."
-DEBIAN_FRONTEND=noninteractive apt install -y --install-recommends openwebrx=${OWRXVERSION:-}
+pinfo "This is a RELEASE (v${OWRXVERSION:-}) build."
+DEBIAN_FRONTEND=noninteractive apt install -y --install-recommends openwebrx="${OWRXVERSION:-}"
 #--install-suggests
 
 # add custom.css to OWRX

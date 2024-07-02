@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source /tmp/common.sh
 
 export PATH=/usr/local/go/bin:$PATH
@@ -14,14 +15,15 @@ pinfo "Building from sources..."
 pinfo "MAKEFLAGS: ${MAKEFLAGS:-}"
 pinfo "PLATFORM: ${PLATFORM}"
 
-echo ${BUILD_DATE:-unknown} > /build-sources-date
+echo "${BUILD_DATE:-unknown}" > /build-sources-date
 
 pinfo "Install dev packages..."
 BUILD_PACKAGES="git cmake make patch wget sudo libusb-1.0-0-dev libsoapysdr-dev debhelper build-essential pkg-config libairspyhf-dev dpkg-dev xxd libpopt-dev libiio-dev libad9361-dev libhidapi-dev libasound2-dev libfftw3-dev libowrx-connector-dev libboost-dev libboost-program-options-dev libboost-log-dev libboost-regex-dev gfortran libcurl4-openssl-dev qt5-qmake libpulse-dev libncurses-dev libliquid-dev libconfig++-dev libpng-dev libtiff-dev libjemalloc-dev libvolk2-dev libnng-dev libzstd-dev libomp-dev ocl-icd-opencl-dev libglfw3-dev"
 apt update
+# shellcheck disable=SC2086
 apt install -y --no-install-recommends $BUILD_PACKAGES
 
-mkdir -p $BUILD_ROOTFS/usr/local/bin
+mkdir -p "$BUILD_ROOTFS"/usr/local/bin
 
 
 # has deb
@@ -67,7 +69,7 @@ else
 fi
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/local/bin/perseustest ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/perseustest ]; then
   pinfo "Install PerseusSDR..."
   if [ -d "libperseus-sdr" ]; then
     cd libperseus-sdr
@@ -81,7 +83,7 @@ if ! [ -f $BUILD_ROOTFS/usr/local/bin/perseustest ]; then
   ./bootstrap.sh
   ./configure
   make
-  make install DESTDIR=$BUILD_ROOTFS/
+  make install DESTDIR="$BUILD_ROOTFS"/
   cd ..
 else
   pinfo "PerseusSDR already built..."
@@ -89,7 +91,7 @@ fi
 
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/local/bin/rockprog ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/rockprog ]; then
   pinfo "Install RockProg..."
   if [ -d "rockprog-linux" ]; then
     cd rockprog-linux
@@ -101,7 +103,7 @@ if ! [ -f $BUILD_ROOTFS/usr/local/bin/rockprog ]; then
 
   cd rockprog-linux
   make
-  install -D rockprog $BUILD_ROOTFS/usr/local/bin/
+  install -D rockprog "$BUILD_ROOTFS"/usr/local/bin/
   cd ..
 else
   pinfo "RockProg already built..."
@@ -131,6 +133,8 @@ fi
 
 
 # no deb
+# shellcheck disable=SC2144
+# shellcheck disable=SC2086
 if ! [ -f $BUILD_ROOTFS/usr/local/lib/SoapySDR/modules*/libSoapyRadioberrySDR.so ]; then
   pinfo "Install RaddioberrySDR..."
   if [ -d "Radioberry-2.x" ]; then
@@ -151,6 +155,8 @@ fi
 
 
 # TODO: has deb
+# shellcheck disable=SC2144
+# shellcheck disable=SC2086
 if ! [ -f $BUILD_ROOTFS/usr/local/lib/SoapySDR/modules*/libFCDPPSupport.so ]; then
   pinfo "Install FCDPP..."
   if [ -d "SoapyFCDPP" ]; then
@@ -214,7 +220,7 @@ fi
 
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/local/bin/freedv_rx ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/freedv_rx ]; then
   pinfo "Install FreeDV..."
   if [ -d "codec2" ]; then
     cd codec2
@@ -232,19 +238,19 @@ if ! [ -f $BUILD_ROOTFS/usr/local/bin/freedv_rx ]; then
   cd build
   cmake ..
   make
-  make install DESTDIR=$BUILD_ROOTFS/
-  install -D -m 0755 src/freedv_rx $BUILD_ROOTFS/usr/local/bin
+  make install DESTDIR="$BUILD_ROOTFS"/
+  install -D -m 0755 src/freedv_rx "$BUILD_ROOTFS"/usr/local/bin
   cd ../..
 else
   pinfo "FreeDV already built..."
 fi
-cp -a $BUILD_ROOTFS/usr/local/include/* /usr/local/include/
-cp -a $BUILD_ROOTFS/usr/local/lib/* /usr/local/lib/
+cp -a "$BUILD_ROOTFS"/usr/local/include/* /usr/local/include/
+cp -a "$BUILD_ROOTFS"/usr/local/lib/* /usr/local/lib/
 
 
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/local/bin/m17-demod ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/m17-demod ]; then
   pinfo "Install M17..."
   if [ -d "m17-cxx-demod" ]; then
     cd m17-cxx-demod
@@ -263,7 +269,7 @@ fi
 
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/local/bin/msk144decoder ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/msk144decoder ]; then
   pinfo "Install MSK144..."
   if [ -d "msk144decoder" ]; then
     cd msk144decoder
@@ -282,7 +288,7 @@ fi
 
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/local/bin/dream ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/dream ]; then
   pinfo "Install DRM..."
   if ! [ -d "dream" ]; then
     rm -f dream-2.1.1-svn808.tar.gz
@@ -296,7 +302,7 @@ if ! [ -f $BUILD_ROOTFS/usr/local/bin/dream ]; then
   cd dream
   qmake CONFIG+=console
   make
-  install -D -m 0755 dream $BUILD_ROOTFS/usr/local/bin/
+  install -D -m 0755 dream "$BUILD_ROOTFS"/usr/local/bin/
   cd ..
 else
   pinfo "DRM already built..."
@@ -405,6 +411,8 @@ fi
 
 
 # no deb
+# shellcheck disable=SC2144
+# shellcheck disable=SC2086
 if ! [ -f $BUILD_ROOTFS/usr/local/lib/SoapySDR/modules*/libafedriDevice.so ]; then
   pinfo "Install SoapyAfedri..."
   if [ -d "SoapyAfedri" ]; then
@@ -424,7 +432,7 @@ fi
 
 
 # no deb
-if ! [ -f $BUILD_ROOTFS/usr/bin/satdump ]; then
+if ! [ -f "$BUILD_ROOTFS"/usr/bin/satdump ]; then
   pinfo "Install satdump..."
   if [ -d "satdump" ]; then
     cd satdump
@@ -442,10 +450,10 @@ else
 fi
 
 # no deb
-if ! [ -d $BUILD_ROOTFS/usr/share/aprs-symbols ]; then
+if ! [ -d "$BUILD_ROOTFS"/usr/share/aprs-symbols ]; then
   pinfo "Install APRS Symbols..."
-  git clone https://github.com/hessu/aprs-symbols $BUILD_ROOTFS/usr/share/aprs-symbols
-  pushd $BUILD_ROOTFS/usr/share/aprs-symbols
+  git clone https://github.com/hessu/aprs-symbols "$BUILD_ROOTFS"/usr/share/aprs-symbols
+  pushd "$BUILD_ROOTFS"/usr/share/aprs-symbols
   git checkout 5c2abe2658ee4d2563f3c73b90c6f59124839802
   # remove unused files (including git meta information)
   rm -rf .git aprs-symbols.ai aprs-sym-export.js
@@ -455,7 +463,7 @@ else
 fi
 
 
-rm -f $BUILD_CACHE/*.buildinfo
-rm -f $BUILD_CACHE/*.changes
+rm -f "$BUILD_CACHE"/*.buildinfo
+rm -f "$BUILD_CACHE"/*.changes
 
 pok "Sources done."

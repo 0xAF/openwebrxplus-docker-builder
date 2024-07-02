@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# shellcheck disable=SC1091
 source /tmp/common.sh
 
 echo;echo;echo;echo;echo;echo;echo
@@ -14,6 +15,7 @@ pinfo "PLATFORM: ${PLATFORM}"
 if [ -n "${APT_PROXY:-}" ]; then
   pinfo "Setup APT proxy..."
   export http_proxy=${APT_PROXY}
+  # shellcheck disable=SC2086
   echo 'Acquire::http { Proxy "'${APT_PROXY}'"; };' > /etc/apt/apt.conf.d/51cache
 fi
 
@@ -91,18 +93,18 @@ e95e057958b59dd290385c1698d2dbfe  s6-overlay-aarch64.tar.xz
 '
 mkdir -p s6
 pushd s6
-S6_ARCH=`uname -m`
+S6_ARCH=$(uname -m)
 if [[ $S6_ARCH == "armv7"* ]]; then S6_ARCH="armhf"; fi
 if [ -f "s6-overlay-noarch.tar.xz" ] && [ -f "s6-overlay-$S6_ARCH.tar.xz" ] && echo "$MD5SUMS" | md5sum --ignore-missing -c; then
   pinfo "skipping download..."
 else
   pinfo "downloading S6"
   rm -f s6-overlay-noarch.tar.xz s6-overlay-x86_64.tar.xz
-  wget https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-noarch.tar.xz
-  wget https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-$S6_ARCH.tar.xz
+  wget "https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-noarch.tar.xz"
+  wget "https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-$S6_ARCH.tar.xz"
 fi
-tar -Jxpf s6-overlay-noarch.tar.xz -C /
-tar -Jxpf s6-overlay-$S6_ARCH.tar.xz -C /
+tar -Jxpf "s6-overlay-noarch.tar.xz" -C /
+tar -Jxpf "s6-overlay-$S6_ARCH.tar.xz" -C /
 popd
 
 
@@ -125,11 +127,11 @@ if [ -f "$SDRPLAY_BINARY" ] && echo "$MD5SUMS" | md5sum --ignore-missing -c; the
   pinfo "skipping download..."
 else
   pinfo "downloading $SDRPLAY_BINARY"
-  rm -f $SDRPLAY_BINARY
-  wget --no-http-keep-alive https://www.sdrplay.com/software/$SDRPLAY_BINARY
+  rm -f "$SDRPLAY_BINARY"
+  wget --no-http-keep-alive "https://www.sdrplay.com/software/$SDRPLAY_BINARY"
 fi
-sh $SDRPLAY_BINARY --noexec --target sdrplay
-patch --verbose -Np0 < /tmp/sdrplay/$SDRPLAY_BINARY.patch
+sh "$SDRPLAY_BINARY" --noexec --target sdrplay
+patch --verbose -Np0 < "/tmp/sdrplay/$SDRPLAY_BINARY.patch"
 cd sdrplay
 mkdir -p /etc/udev/rules.d
 ./install_lib.sh

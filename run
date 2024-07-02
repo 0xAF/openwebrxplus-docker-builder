@@ -1,0 +1,207 @@
+#!/bin/bash
+CWD="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+cd "${CWD}" || exit 1
+# shellcheck source=./lib/log.sh
+# shellcheck disable=SC1091
+source "${CWD}"/lib/log.sh
+
+DOCKER_HUB_USER=slechev
+PRODUCT=openwebrxplus
+DATE=$(date +%F)
+
+MAKEFLAGS=-j$(nproc --ignore=4)
+
+# to use APT proxy, run: ./run start-apt-cache
+APT_PROXY=
+APT_PROXY="http://$(ip -o route get to 8.8.8.8 | sed -n 's/.*src \([0-9.]\+\).*/\1/p'):3142"
+
+HAS_DOCKER=$(docker -v 2>/dev/null || false)
+HAS_BUILDX=$(docker buildx version 2>/dev/null || false)
+
+start-apt-cache() {
+  log inf "Starting APT-Cache..."
+  cd "${CWD}"/apt-cache || exit 1
+  docker compose up -d
+  cd .. || exit 1
+}
+
+stop-apt-cache() {
+  log inf "Stopping APT-Cache..."
+  cd "${CWD}"/apt-cache || exit 1
+  docker compose down -v || true
+  cd .. || exit 1
+}
+
+check-apt() {
+  cd "${CWD}"/apt-cache || exit 1
+  local ret
+  ret=0
+  if [ "$(docker compose ps -q)" != "" ]; then
+    log "APT-Cache is running..."
+    ret=0
+  else
+    ret=1
+  fi
+  cd .. || exit 1
+  return $ret
+}
+
+clean() {
+  stop-apt-cache
+  log inf "Removing APT-Cache"
+  sudo rm -rf "${CWD}"/apt-cache/apt-cacher-ng/
+  docker image rm sameersbn/apt-cacher-ng
+
+  log inf "Removing BuildX volume"
+  docker volume rm buildx_buildkit_owrxp-builder0_state
+}
+
+check-docker() {
+  log inf "Docker: [4[${HAS_DOCKER}]], [6[${HAS_BUILDX}]]"
+  if [ -z "${HAS_DOCKER}" ] || [ -z "${HAS_BUILDX}" ]; then
+    log err "Cannot find Docker or BuildX. Please install them."
+    exit 1
+  fi
+}
+
+add-admin() {
+  docker exec -it ${PRODUCT} /usr/bin/openwebrx admin adduser admin
+}
+
+get_owrxp_version() {
+  curl https://raw.githubusercontent.com/luarvique/openwebrx/master/owrx/version.py 2>/dev/null |
+    grep -v "looseversion" |
+    grep "_versionstring" |
+    cut -d '"' -f 2
+}
+
+build() {
+  check-apt || start-apt-cache
+
+  local VER
+  VER=$(get_owrxp_version)
+  log inf "Building '${PRODUCT}:${VER}'"
+  echo
+
+  mkdir -p cache
+  # create docker builder https://docs.docker.com/build/building/multi-platform/
+  # we enable networking so the builder container has access to the host network (needed for registry)
+  log inf "Creating docker builder for multiarch..."
+  docker buildx create \
+    --name owrxp-builder \
+    --driver docker-container \
+    --bootstrap \
+    --use \
+    --driver-opt network=host \
+    2>/dev/null || true # ignore errors if already created
+
+  log inf "Building the image for AMD64, ARM64 and ARM32v7."
+  time docker buildx build \
+    --platform linux/amd64,linux/arm64,linux/arm/v7 \
+    --build-context mycache="$(pwd)"/cache \
+    --cache-from type=local,src="$(pwd)"/cache \
+    --cache-to type=local,dest="$(pwd)"/cache \
+    --build-arg MAKEFLAGS="${MAKEFLAGS}" \
+    --build-arg BUILD_DATE="${DATE}" \
+    --build-arg PRODUCT="${PRODUCT}" \
+    --build-arg OWRXVERSION="${VER}" \
+    --build-arg APT_PROXY="${APT_PROXY}" \
+    -t "${DOCKER_HUB_USER}"/"${PRODUCT}":"${VER}" \
+    -t "${DOCKER_HUB_USER}"/"${PRODUCT}" \
+    --pull \
+    --push \
+    ./buildfiles
+
+  #--progress=plain \
+  #--load \
+  #--platform linux/amd64,linux/arm64,linux/arm/v7 \
+  #--platform linux/amd64 \
+  #--cache-from=type=local,src=`pwd`/cache
+  #--cache-to=type=local,dest=`pwd`/cache
+
+  log inf "Building SoftMBE image for AMD64, ARM64 and ARM32v7."
+  time docker buildx build \
+    --platform linux/amd64,linux/arm64,linux/arm/v7 \
+    --build-arg MAKEFLAGS="${MAKEFLAGS}" \
+    -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe":"${VER}" \
+    -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe" \
+    --pull \
+    --push \
+    ./buildfiles-softmbe
+
+  log inf "Removing docker builder (keeping state/caches for next use)..."
+  docker buildx rm --keep-state owrxp-builder # keep state is needed to keep the caches for the next build
+
+}
+
+run_internal() {
+  mkdir -p work/owrx/var work/owrx/etc
+  docker run --rm \
+    -h ${PRODUCT} \
+    --name ${PRODUCT} \
+    --device /dev/bus/usb \
+    -p 8073:8073 \
+    -v ./work/owrx/var:/var/lib/openwebrx \
+    -v ./work/owrx/etc:/etc/openwebrx \
+    "${1}"
+}
+
+run() {
+  run_internal ${PRODUCT}
+}
+
+run-from-hub() {
+  run_internal ${DOCKER_HUB_USER}/${PRODUCT}
+}
+
+dev_internal() {
+  check-apt || start-apt-cache
+  mkdir -p work/owrx/var work/owrx/etc
+  docker run -it --rm \
+    -p 8073:8073 \
+    --device /dev/bus/usb \
+    -v ./work/owrx/var:/var/lib/openwebrx \
+    -v ./work/owrx/etc:/etc/openwebrx \
+    --name ${PRODUCT}-dev \
+    --entrypoint /init \
+    -v "$(pwd)"/cache:/build_cache \
+    -e http_proxy="${APT_PROXY}" \
+    "${1}" /bin/bash
+}
+
+dev() {
+  dev_internal ${PRODUCT}
+}
+
+dev-from-hub() {
+  dev_internal ${DOCKER_HUB_USER}/${PRODUCT}
+}
+
+## MAIN
+log "Builder for OpenWebRX+ Docker Image"
+check-docker
+
+usage() {
+  log war "Usage: $0 [command]"
+  log war '. commands:'
+  log war '... build - build the image and push to hub.docker.com'
+  log war '... run - run container from latest image'
+  log war '... run-from-hub - run container from latest image from hub.docker.com'
+  log war '... dev - start container with bash shell'
+  log war '... dev-from-hub - start container from hub.docker.com with bash shell'
+  log war "... add-admin - to add 'admin' user to running docker container"
+  log war "... clean - remove the builder and the caches."
+  echo
+  log war "You can specify MAKEFLAGS for docker builds:"
+  log war "[6[MAKEFLAGS=\"-j4\" $0]]"
+  echo
+  log war "NOTE: to clear the caches, you should remove the 'buildx' volume and the 'cache' folder."
+}
+
+if [[ $(type -t "$1") == 'function' ]]; then
+  # shellcheck disable=SC2068
+  $1 $@
+else
+  [ "$1" != "" ] && log err "Command '$1' not found..." && echo
+  usage
+fi
