@@ -8,6 +8,7 @@ source "${CWD}"/lib/log.sh
 DOCKER_HUB_USER=slechev
 PRODUCT=openwebrxplus
 DATE=$(date +%F)
+TEST_IMG="${DOCKER_HUB_USER}/${PRODUCT}-softmbe"
 
 MAKEFLAGS=-j$(nproc --ignore=4)
 
@@ -147,11 +148,13 @@ run_internal() {
 }
 
 run() {
-  run_internal ${PRODUCT}
+  docker pull ${TEST_IMG} || true
+  run_internal ${TEST_IMG}
 }
 
 run-from-hub() {
-  run_internal ${DOCKER_HUB_USER}/${PRODUCT}
+  docker pull ${TEST_IMG} || true
+  run_internal ${TEST_IMG}
 }
 
 dev_internal() {
@@ -170,11 +173,13 @@ dev_internal() {
 }
 
 dev() {
-  dev_internal ${PRODUCT}
+  docker pull ${TEST_IMG} || true
+  dev_internal ${TEST_IMG}
 }
 
 dev-from-hub() {
-  dev_internal ${DOCKER_HUB_USER}/${PRODUCT}
+  docker pull ${TEST_IMG} || true
+  dev_internal ${TEST_IMG}
 }
 
 ## MAIN
@@ -194,8 +199,6 @@ usage() {
   echo
   log war "You can specify MAKEFLAGS for docker builds:"
   log war "[6[MAKEFLAGS=\"-j4\" $0]]"
-  echo
-  log war "NOTE: to clear the caches, you should remove the 'buildx' volume and the 'cache' folder."
 }
 
 if [[ $(type -t "$1") == 'function' ]]; then
