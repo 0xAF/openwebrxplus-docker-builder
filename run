@@ -110,7 +110,7 @@ build() {
     -t "${DOCKER_HUB_USER}"/"${PRODUCT}" \
     --pull \
     --push \
-    ./buildfiles
+    ./buildfiles || exit 1
 
   #--progress=plain \
   #--load \
@@ -127,7 +127,7 @@ build() {
     -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe" \
     --pull \
     --push \
-    ./buildfiles-softmbe
+    ./buildfiles-softmbe || exit 1
 
   log inf "Removing docker builder (keeping state/caches for next use)..."
   docker buildx rm --keep-state owrxp-builder # keep state is needed to keep the caches for the next build

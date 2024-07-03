@@ -3,21 +3,11 @@ set -euo pipefail
 
 mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrx /tmp/openwebrx
 
-if [ "$(ls -A /etc/openwebrx/)" ]; then
-  echo "+++ /etc/openwebrx is already initialized."
-else
-  echo;echo;echo;
-  echo +++ initializing /etc/openwebrx with defaults from package.
-  cp -a /tmp/owrx-etc/* /etc/openwebrx/
-fi
+echo "+++ adding new files (if any) to /etc/openwebrx"
+cp -av --update=none /tmp/owrx-etc/* /etc/openwebrx/
 
-if [ "$(ls -A /var/lib/openwebrx/)" ]; then
-  echo "+++ /var/lib/openwebrx is already initialized."
-else
-  echo;echo;echo;
-  echo +++ overwriting /var/lib/openwebrx with defaults from package.
-  cp -a /tmp/owrx-var/* /var/lib/openwebrx
-fi
+echo "+++ adding new files (if any) to /var/lib/openwebrx"
+cp -av --update=none /tmp/owrx-var/* /var/lib/openwebrx/
 
 if [[ ! -f /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf ]] ; then
   cat << EOF > /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf
