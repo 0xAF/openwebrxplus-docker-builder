@@ -6,7 +6,6 @@ RUN /tmp/build-packages.sh
 FROM slechev/openwebrxplus:latest
 ARG ARCH
 ARG MAKEFLAGS
-LABEL OpenWebRX+ with Digital (SoftMBE) codecs (incl. DMR, D-STAR, YSF).
 COPY --from=build /deb /deb
 COPY install-packages.sh /tmp/
 RUN /tmp/install-packages.sh
