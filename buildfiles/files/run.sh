@@ -3,20 +3,20 @@ set -euo pipefail
 
 mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrx /tmp/openwebrx
 
-if ! [ -f /etc/openwebrx/.remove-this-file-to-overwrite-folder-with-defaults ]; then
+if [ "$(ls -A /etc/openwebrx/)" ]; then
+  echo "+++ /etc/openwebrx is already initialized."
+else
   echo;echo;echo;
-  echo +++ overwriting /etc/openwebrx with defaults from package.
-  echo;echo;echo
+  echo +++ initializing /etc/openwebrx with defaults from package.
   cp -a /tmp/owrx-etc/* /etc/openwebrx/
-  touch /etc/openwebrx/.remove-this-file-to-overwrite-folder-with-defaults
 fi
 
-if ! [ -f /var/lib/openwebrx/.remove-this-file-to-overwrite-folder-with-defaults ]; then
+if [ "$(ls -A /var/lib/openwebrx/)" ]; then
+  echo "+++ /var/lib/openwebrx is already initialized."
+else
   echo;echo;echo;
   echo +++ overwriting /var/lib/openwebrx with defaults from package.
-  echo;echo;echo
   cp -a /tmp/owrx-var/* /var/lib/openwebrx
-  touch /var/lib/openwebrx/.remove-this-file-to-overwrite-folder-with-defaults
 fi
 
 if [[ ! -f /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf ]] ; then
