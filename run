@@ -8,6 +8,7 @@ source "${CWD}"/lib/log.sh
 DOCKER_HUB_USER=slechev
 PRODUCT=openwebrxplus
 DATE=$(date +%F)
+TEST_IMG="${DOCKER_HUB_USER}/${PRODUCT}"
 TEST_IMG="${DOCKER_HUB_USER}/${PRODUCT}-softmbe"
 
 MAKEFLAGS=-j$(nproc --ignore=4)
@@ -53,8 +54,18 @@ clean() {
   sudo rm -rf "${CWD}"/apt-cache/apt-cacher-ng/
   docker image rm sameersbn/apt-cacher-ng
 
+  log inf "Stopping and Removing BuildX container"
+  sudo docker buildx stop
+  sudo docker buildx rm
+
+  log inf "Removing BuildX cache"
+  sudo docker builder prune -af
+
   log inf "Removing BuildX volume"
   docker volume rm buildx_buildkit_owrxp-builder0_state
+
+  log inf "Removing local cache folder"
+  sudo rm -rf "${CWD}"/cache
 }
 
 check-docker() {

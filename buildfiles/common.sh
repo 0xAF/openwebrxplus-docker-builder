@@ -13,15 +13,15 @@ export MARCH=native
 case `uname -m` in
   arm*)
     PLATFORM=armhf
-    SDRPLAY_BINARY=SDRplay_RSP_API-ARM32-3.07.2.run
+    SDRPLAY_BINARY=SDRplay_RSP_API-Linux-3.15.2.run
     ;;
   aarch64*)
     PLATFORM=aarch64
-    SDRPLAY_BINARY=SDRplay_RSP_API-Linux-3.15.1.run
+    SDRPLAY_BINARY=SDRplay_RSP_API-Linux-3.15.2.run
     ;;
   x86_64*)
     PLATFORM=amd64
-    SDRPLAY_BINARY=SDRplay_RSP_API-Linux-3.15.1.run
+    SDRPLAY_BINARY=SDRplay_RSP_API-Linux-3.15.2.run
     export MARCH=x86-64
     ;;
   *)
@@ -30,17 +30,19 @@ case `uname -m` in
     ;;
 esac
 
-if [ ! -d /build_cache ] && [ -z "${ENTER_SHELL:-}" ]; then
-  echo;echo;echo;
-  perror "ERROR: This build must have a volume mounted in /build_cache"
-  echo;echo;echo
-  exit 1
-fi
+if [ -z "${ENTER_SHELL:-}" ]; then
+  if [ ! -d /build_cache ]; then
+    echo;echo;echo;
+    perror "ERROR: This build must have a volume mounted in /build_cache"
+    echo;echo;echo
+    exit 1
+  fi
 
-export BUILD_CACHE=/build_cache/`uname -m`
-export BUILD_ROOTFS=/build_cache/`uname -m`/rootfs
-mkdir -p $BUILD_CACHE $BUILD_ROOTFS
-cd $BUILD_CACHE
+  export BUILD_CACHE=/build_cache/`uname -m`
+  export BUILD_ROOTFS=/build_cache/`uname -m`/rootfs
+  mkdir -p $BUILD_CACHE $BUILD_ROOTFS
+  cd $BUILD_CACHE
+fi
 
 function cmakebuild() {
   cd $1
@@ -56,6 +58,8 @@ function cmakebuild() {
   cmake ${CMAKE_ARGS:-} ..
   make
   make install DESTDIR=$BUILD_ROOTFS/
+  make install # in case other compilations need this one, make it available in the build image too
+  ldconfig
   cd ../..
 }
 
@@ -69,3 +73,4 @@ function apt-install-depends() {
 }
 
 alias systemctl=true
+

@@ -37,17 +37,15 @@ source /tmp/common.sh
 
 echo;echo;echo;
 echo ================================================================
-echo "to stop openwebrx and then start it:"
-echo "s6-rc -d change openwebrx"
-echo "s6-rc -u change openwebrx"
-echo "you can use 'stop-owrx' and 'start-owrx' aliases too..."
-echo;echo;echo
-echo "more info: https://skarnet.org/software/s6-rc/faq.html"
+echo "you can use 'owrx-stop' and 'owrx-start' aliases"
+echo "s6 info: https://skarnet.org/software/s6-rc/faq.html"
 echo ================================================================
 echo;echo;echo
 
-alias stop-owrx='s6-rc -d change openwebrx'
-alias start-owrx='s6-rc -u change openwebrx'
+alias owrx-stop='s6-rc -d change openwebrx'
+alias owrx-start='s6-rc -u change openwebrx'
+
+export PATH=$PATH:/command
 _EOF_
 
 
@@ -99,7 +97,7 @@ if [ -f "s6-overlay-noarch.tar.xz" ] && [ -f "s6-overlay-$S6_ARCH.tar.xz" ] && e
   pinfo "skipping download..."
 else
   pinfo "downloading S6"
-  rm -f s6-overlay-noarch.tar.xz s6-overlay-x86_64.tar.xz
+  rm -f s6-overlay-noarch.tar.xz "s6-overlay-$S6_ARCH.tar.xz"
   wget "https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-noarch.tar.xz"
   wget "https://github.com/just-containers/s6-overlay/releases/download/v3.1.5.0/s6-overlay-$S6_ARCH.tar.xz"
 fi
@@ -120,6 +118,7 @@ a7281fb46aa35f0d87b13b343c247381  SDRplay_RSP_API-ARM64-3.07.1.run
 41fea62ae45d76aaafd6437483386d7f  SDRplay_RSP_API-Linux-3.07.1.run
 c739ba0e6c7769957ca79ab05e46f081  SDRplay_RSP_API-Linux-3.14.0.run
 b7317257d7498c2fa22d6d53b90f4611  SDRplay_RSP_API-Linux-3.15.1.run
+92feae82c39d2e33eec13fc5662a3b9b  SDRplay_RSP_API-Linux-3.15.2.run
 '
 mkdir -p sdrplay
 pushd sdrplay
@@ -163,7 +162,7 @@ rm -rf /tmp/sdrplay
 # ---------------------------------------------------------------------
 pinfo "Install OWRX deps from deb packages..."
 apt-install-depends openwebrx
-apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec
+apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec soapysdr-tools
 
 mkdir -p \
   /etc/s6-overlay/s6-rc.d/codecserver/dependencies.d \

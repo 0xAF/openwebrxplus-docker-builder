@@ -26,6 +26,37 @@ apt install -y --no-install-recommends $BUILD_PACKAGES
 mkdir -p "$BUILD_ROOTFS"/usr/local/bin
 
 
+# no deb
+if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/libmirisdr.so.4 ]; then
+  pinfo "Install libmirisdr-5..."
+  if [ -d "libmirisdr-5" ]; then
+    cd libmirisdr-5
+    git pull
+    cd ..
+  else
+    git clone https://github.com/ericek111/libmirisdr-5
+  fi
+
+  cmakebuild libmirisdr-5
+else
+  pinfo "libmirisdr-5 already built..."
+fi
+
+if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules*/libsoapyMiriSupport.so ]; then
+  pinfo "Install SoapyMiri..."
+  if [ -d "SoapyMiri" ]; then
+    cd SoapyMiri
+    git pull
+    cd ..
+  else
+    git clone https://github.com/ericek111/SoapyMiri
+  fi
+
+  cmakebuild SoapyMiri
+else
+  pinfo "SoapyMiri already built..."
+fi
+
 # has deb
 if ! ls librtlsdr0_*.deb 1>/dev/null 2>&1; then
   pinfo "Install RTL-SDR Blog (v4)..."
@@ -43,7 +74,7 @@ if ! ls librtlsdr0_*.deb 1>/dev/null 2>&1; then
   dpkg-buildpackage -b --no-sign
   cd ..
 else
-  pinfo "PlutoSDR already built..."
+  pinfo "RTL-SDR v4 already built..."
 fi
 
 # has deb

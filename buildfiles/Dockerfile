@@ -34,6 +34,7 @@ COPY /files/run.sh /run.sh
 RUN --mount=type=cache,target=/build_cache \
 	/tmp/install-owrx.sh
 
+WORKDIR "/"
 ENTRYPOINT ["/init"]
 VOLUME /etc/openwebrx
 VOLUME /var/lib/openwebrx

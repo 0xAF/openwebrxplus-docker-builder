@@ -13,6 +13,7 @@ RUN /tmp/install-packages.sh
 #ENV S6_CMD_ARG0="/opt/openwebrx/docker/scripts/run.sh"
 #WORKDIR /opt/openwebrx
 
+WORKDIR "/"
 ENTRYPOINT ["/init"]
 VOLUME /etc/openwebrx
 VOLUME /var/lib/openwebrx
