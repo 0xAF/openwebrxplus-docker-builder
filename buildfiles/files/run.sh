@@ -1,5 +1,10 @@
-#!/bin/bash
+#!/command/with-contenv /bin/bash
 set -euo pipefail
+
+if [[ -n "${TZ}" ]]; then
+	ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+	dpkg-reconfigure --frontend noninteractive tzdata
+fi
 
 mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrx /tmp/openwebrx
 
@@ -27,6 +32,28 @@ if [[ -n "${OPENWEBRX_ADMIN_USER:-}" ]] && [[ -n "${OPENWEBRX_ADMIN_PASSWORD:-}"
   fi
 fi
 
+create_socat_links() {
+# Bind linked docker container to localhost socket using socat
+  while read -r LOCAL PUBLIC; do
+    if test -z "$LOCAL$PUBLIC"; then
+      continue
+    else
+      SERV_FOLDER=/etc/s6-overlay/s6-rc.d/socat_${LOCAL}_${PUBLIC}
+      #SERV_FOLDER=/run/service/socat_${LOCAL}_${PUBLIC}
+      mkdir -p "${SERV_FOLDER}"
+      CMD="socat -ls TCP4-LISTEN:${PUBLIC},fork,reuseaddr TCP4:127.0.0.1:${LOCAL}"
+      # shellcheck disable=SC2039,SC3037
+      echo -e "#!/bin/sh\nexec $CMD" > "${SERV_FOLDER}"/run
+      chmod +x "${SERV_FOLDER}"/run
+      echo "Forwarding port: ${PUBLIC} will be binded to localhost port ${LOCAL}" 1>&2
+      s6-svlink /run/service "${SERV_FOLDER}"
+    fi
+  done << EOT
+  $(env | sed -En 's|FORWARD_LOCALPORT_([0-9]+)=([0-9]+)|\1 \2|p')
+EOT
+}
+
+create_socat_links
 
 _term() {
   echo "Caught signal!"

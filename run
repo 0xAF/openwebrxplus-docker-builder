@@ -155,6 +155,8 @@ run_internal() {
     -p 8073:8073 \
     -v ./work/owrx/var:/var/lib/openwebrx \
     -v ./work/owrx/etc:/etc/openwebrx \
+    -e FORWARD_LOCALPORT_1234=5678 \
+    -e TZ=Europe/Sofia \
     "${1}"
 }
 
@@ -180,6 +182,8 @@ dev_internal() {
     --entrypoint /init \
     -v "$(pwd)"/cache:/build_cache \
     -e http_proxy="${APT_PROXY}" \
+    -e FORWARD_LOCALPORT_1234=5678 \
+    -e TZ=Europe/Sofia \
     "${1}" /bin/bash
 }
 

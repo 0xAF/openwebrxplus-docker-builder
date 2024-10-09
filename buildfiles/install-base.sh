@@ -21,8 +21,11 @@ fi
 
 # ease my life
 cat >> /root/.bashrc << _EOF_
+# remove apt cache, in case it was left from the build
+rm -f /etc/apt/apt.conf.d/51cache
+
 # if docker is started with http_proxy env - we will give it to apt
-if [ -n "${http_proxy:-}" ]; then echo 'Acquire::http { Proxy "'${http_proxy:-}'"; };' > /etc/apt/apt.conf.d/51cache; fi
+if [ -n "\${http_proxy:-}" ]; then echo 'Acquire::http { Proxy "'\${http_proxy:-}'"; };' > /etc/apt/apt.conf.d/51cache; fi
 
 # why is this not the default?!?
 export LS_OPTIONS='--color=auto --group-directories-first -p'
@@ -51,7 +54,7 @@ _EOF_
 
 pinfo "Update apt and install packages..."
 apt update
-apt -y install --no-install-recommends wget gpg ca-certificates patch sudo vim-tiny xz-utils libairspyhf1 libiio0 libad9361-0 libpopt0 alsa-utils libhidapi-hidraw0 libhidapi-libusb0 libasound2 libfftw3-single3 libboost-program-options1.74.0 libboost-log1.74.0 libcurl4 libliquid1 libncurses6 libpulse0 libconfig++9v5 less libjemalloc2 libvolk2.5 libnng1 libzstd1 libomp5-14 python3-paho-mqtt libglfw3
+apt -y install --no-install-recommends wget gpg ca-certificates patch sudo vim-tiny xz-utils libairspyhf1 libiio0 libad9361-0 libpopt0 alsa-utils libhidapi-hidraw0 libhidapi-libusb0 libasound2 libfftw3-single3 libboost-program-options1.74.0 libboost-log1.74.0 libcurl4 libliquid1 libncurses6 libpulse0 libconfig++9v5 less libjemalloc2 libvolk2.5 libnng1 libzstd1 libomp5-14 python3-paho-mqtt libglfw3 socat
 
 pinfo "Add repos and update apt again..."
 wget -O - https://luarvique.github.io/ppa/openwebrx-plus.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/openwebrx-plus.gpg
@@ -192,6 +195,7 @@ SUDO_FORCE_REMOVE=yes apt remove --allow-remove-essential -y --purge --autoremov
   libcairo-gobject2 libfdisk1 netpbm tzdata ucf xdg-user-dirs xfonts-utils xfonts-encodings \
   xz-utils util-linux sensible-utils poppler-data login bsdutils
 
+apt install tzdata
 
 apt clean
 rm -rf /var/lib/apt/lists/* /usr/share/doc/*
