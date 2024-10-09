@@ -1,7 +1,7 @@
 #!/command/with-contenv /bin/bash
 set -euo pipefail
 
-if [[ -n "${TZ}" ]]; then
+if [[ -n "${TZ:-}" ]]; then
 	ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
 	dpkg-reconfigure --frontend noninteractive tzdata
 fi
