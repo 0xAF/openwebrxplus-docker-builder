@@ -1,8 +1,10 @@
 #!/command/with-contenv /bin/bash
 set -euo pipefail
 
-if [[ -n "${TZ:-}" ]]; then
-	ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+# this seems redundant, if tzdata is installed. need to check this.
+if [[ -n "${TZ:-}" ]] && [[ -f /usr/share/zoneinfo/"${TZ:-}" ]]; then
+	ln -sf /usr/share/zoneinfo/"${TZ}" /etc/localtime
+	echo "${TZ}" > /etc/timezone
 	dpkg-reconfigure --frontend noninteractive tzdata
 fi
 
@@ -24,8 +26,8 @@ fi
 if [[ -n "${OPENWEBRX_ADMIN_USER:-}" ]] && [[ -n "${OPENWEBRX_ADMIN_PASSWORD:-}" ]] ; then
   echo;echo;echo
   echo "+++ Adding admin user ${OPENWEBRX_ADMIN_USER:-}"
-  if ! python3 openwebrx.py admin --silent hasuser "${OPENWEBRX_ADMIN_USER}" ; then
-    OWRX_PASSWORD="${OPENWEBRX_ADMIN_PASSWORD}" python3 openwebrx.py admin --noninteractive adduser "${OPENWEBRX_ADMIN_USER}"
+  if ! openwebrx admin --silent hasuser "${OPENWEBRX_ADMIN_USER}" ; then
+    OWRX_PASSWORD="${OPENWEBRX_ADMIN_PASSWORD}" openwebrx admin --noninteractive adduser "${OPENWEBRX_ADMIN_USER}"
     echo "+++ Admin user ${OPENWEBRX_ADMIN_USER:-} added."
   else
     echo "+++ Admin user ${OPENWEBRX_ADMIN_USER:-} already exist."
@@ -38,6 +40,7 @@ create_socat_links() {
     if test -z "$LOCAL$PUBLIC"; then
       continue
     else
+	  rm -rf /run/service/socat_${LOCAL}_${PUBLIC}
       SERV_FOLDER=/etc/s6-overlay/s6-rc.d/socat_${LOCAL}_${PUBLIC}
       #SERV_FOLDER=/run/service/socat_${LOCAL}_${PUBLIC}
       mkdir -p "${SERV_FOLDER}"
@@ -45,7 +48,8 @@ create_socat_links() {
       # shellcheck disable=SC2039,SC3037
       echo -e "#!/bin/sh\nexec $CMD" > "${SERV_FOLDER}"/run
       chmod +x "${SERV_FOLDER}"/run
-      echo "Forwarding port: ${PUBLIC} will be binded to localhost port ${LOCAL}" 1>&2
+      echo -e "longrun" > "${SERV_FOLDER}"/type
+      echo "+++ Forwarding port: ${PUBLIC} will be binded to localhost port ${LOCAL}" 1>&2
       s6-svlink /run/service "${SERV_FOLDER}"
     fi
   done << EOT
@@ -62,7 +66,7 @@ _term() {
 
 trap _term SIGTERM SIGINT
 
-echo "+++ List of processes before start..."
+echo "+++ List of processes before OWRX start..."
 ps xa
 
 echo "+++ OpenWebRX+ starting."
