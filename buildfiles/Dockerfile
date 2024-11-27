@@ -34,6 +34,10 @@ COPY /files/run.sh /run.sh
 RUN --mount=type=cache,target=/build_cache \
 	/tmp/install-owrx.sh
 
+COPY /files/healthcheck.sh /healthcheck.sh
+RUN chmod +x /healthcheck.sh
+HEALTHCHECK CMD /healthcheck.sh || exit 1
+
 WORKDIR "/"
 ENTRYPOINT ["/init"]
 VOLUME /etc/openwebrx
