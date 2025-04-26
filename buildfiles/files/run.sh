@@ -34,6 +34,18 @@ if [[ -n "${OPENWEBRX_ADMIN_USER:-}" ]] && [[ -n "${OPENWEBRX_ADMIN_PASSWORD:-}"
   fi
 fi
 
+if [[ -n "${OPENWEBRX_ENABLE_SATDUMP:-}" ]]; then
+  echo;echo;echo
+  echo "+++ Enabling SATDump stuff..."
+  sed -i "/SatDump stuff is work in progress/ {
+    :a
+    n
+    /^[^#]/ b
+    s/^#//
+    ba
+  }" /usr/lib/python3/dist-packages/owrx/modes.py
+fi
+
 create_socat_links() {
 # Bind linked docker container to localhost socket using socat
   while read -r LOCAL PUBLIC; do

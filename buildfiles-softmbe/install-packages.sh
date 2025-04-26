@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-dpkg -i /deb/libmbe1_1.3.0_*.deb
+dpkg -i /deb/libmbe1_1.3*.deb
 
 
 echo "+ Install codecserver-softmbe..."

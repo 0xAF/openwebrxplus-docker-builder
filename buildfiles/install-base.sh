@@ -54,7 +54,7 @@ _EOF_
 
 pinfo "Update apt and install packages..."
 apt update
-apt -y install --no-install-recommends wget gpg ca-certificates patch sudo vim-tiny xz-utils libairspyhf1 libiio0 libad9361-0 libpopt0 alsa-utils libhidapi-hidraw0 libhidapi-libusb0 libasound2 libfftw3-single3 libboost-program-options1.74.0 libboost-log1.74.0 libcurl4 libliquid1 libncurses6 libpulse0 libconfig++9v5 less libjemalloc2 libvolk2.5 libnng1 libzstd1 libomp5-14 python3-paho-mqtt libglfw3 socat usbutils
+apt -y install --no-install-recommends wget gpg ca-certificates patch sudo vim-tiny xz-utils libairspyhf1 libiio0 libad9361-0 libpopt0 alsa-utils libhidapi-hidraw0 libhidapi-libusb0 libasound2 libfftw3-single3 libboost-program-options1.74.0 libboost-log1.74.0 libcurl4 libliquid1 libncurses6 libpulse0 libconfig++9v5 less libjemalloc2 libvolk2.5 libnng1 libzstd1 libomp5-14 python3-paho-mqtt libglfw3 socat usbutils ocl-icd-opencl-dev
 
 pinfo "Add repos and update apt again..."
 wget -O - https://luarvique.github.io/ppa/openwebrx-plus.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/openwebrx-plus.gpg

@@ -16,17 +16,15 @@ BUILD_PACKAGES="git build-essential debhelper cmake libprotobuf-dev protobuf-com
 apt-get -y install --no-install-recommends $BUILD_PACKAGES
 
 echo "+ Build MBELIB..."
-git clone https://github.com/szechyjs/mbelib.git
+git clone https://github.com/0xAF/mbelib
 cd mbelib
 dpkg-buildpackage
 cd ..
-dpkg -i libmbe1_1.3.0_*.deb libmbe-dev_1.3.0_*.deb
+dpkg -i libmbe1_1.3*.deb libmbe-dev_1.3*.deb
 
 echo "+ Build codecserver-softmbe..."
-git clone https://github.com/knatterfunker/codecserver-softmbe.git
+git clone https://github.com/0xAF/codecserver-softmbe
 cd codecserver-softmbe
-# ignore missing library linking error in dpkg-buildpackage command
-sed -i 's/dh \$@/dh \$@ --dpkg-shlibdeps-params=--ignore-missing-info/' debian/rules
 dpkg-buildpackage
 cd ..
 
