@@ -11,10 +11,10 @@ fi
 mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrx /tmp/openwebrx
 
 echo "+++ adding new files (if any) to /etc/openwebrx"
-cp -avn /tmp/owrx-etc/* /etc/openwebrx/
+cp -avn /owrx-init/etc/* /etc/openwebrx/
 
 echo "+++ adding new files (if any) to /var/lib/openwebrx"
-cp -avn /tmp/owrx-var/* /var/lib/openwebrx/
+cp -avn /owrx-init/var/* /var/lib/openwebrx/
 
 if [[ ! -f /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf ]] ; then
   cat << EOF > /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf

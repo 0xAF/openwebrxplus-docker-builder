@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # shellcheck disable=SC1091
-source /tmp/common.sh
+source /common.sh
 
 export PATH=/usr/local/go/bin:$PATH
 mkdir -p /go

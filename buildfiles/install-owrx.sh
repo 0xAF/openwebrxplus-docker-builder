@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # shellcheck disable=SC1091
-source /tmp/common.sh
+source /common.sh
 
 echo;echo;echo;echo;echo;echo;echo
 pinfo "Building ${PRODUCT:-}:${OWRXVERSION:-}..."
@@ -39,8 +39,9 @@ DEBIAN_FRONTEND=noninteractive apt install -y --install-recommends openwebrx="${
 grep -q 'custom.css' /usr/lib/python3/dist-packages/htdocs/index.html || sed -i 's|</head>|<link rel="stylesheet" type="text/css" href="static/css/custom.css" />\n</head>|' /usr/lib/python3/dist-packages/htdocs/index.html
 ln -s /etc/openwebrx/custom.css /usr/lib/python3/dist-packages/htdocs/css/
 
-cp -a /etc/openwebrx /tmp/owrx-etc
-cp -a /var/lib/openwebrx /tmp/owrx-var
+mkdir -p /owrx-init
+cp -a /etc/openwebrx /owrx-init/etc
+cp -a /var/lib/openwebrx /owrx-init/var
 
 chmod +x /run.sh
 

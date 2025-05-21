@@ -2,22 +2,22 @@
 FROM debian:bookworm-slim AS base
 ARG MAKEFLAGS
 ARG APT_PROXY
-ADD files/sdrplay /tmp/sdrplay
-COPY install-base.sh common.sh /tmp/
+ADD files/sdrplay /sdrplay-patch
+COPY install-base.sh common.sh /
 #--mount=type=cache,target=/var/cache/apt \
 RUN --mount=type=cache,target=/build_cache \
-	/tmp/install-base.sh
+	/install-base.sh && rm -f /install-base.sh
 
 FROM base AS sources
 ARG MAKEFLAGS
 ARG APT_PROXY
 ARG BUILD_DATE
-COPY install-sources.sh /tmp
+COPY install-sources.sh /
 COPY --from=golang:bookworm /usr/local/go /usr/local/go
 #--mount=type=cache,target=/var/cache/apt \
 RUN --mount=type=cache,target=/build_cache \
     --mount=type=bind,source=files,target=/files \
-	/tmp/install-sources.sh
+	/install-sources.sh && rm -f /install-sources.sh
 
 FROM base AS final
 # FROM sources as final
@@ -28,11 +28,11 @@ ARG MAKEFLAGS
 ARG BUILD_DATE
 #ARG BUILD_SHA
 COPY --from=sources /build-sources-date /build-sources-date
-COPY install-owrx.sh /tmp
+COPY install-owrx.sh /
 COPY /files/run.sh /run.sh
 #--mount=type=cache,target=/var/cache/apt \
 RUN --mount=type=cache,target=/build_cache \
-	/tmp/install-owrx.sh
+	/install-owrx.sh && rm -f /install-owrx.sh
 
 COPY /files/healthcheck.sh /healthcheck.sh
 RUN chmod +x /healthcheck.sh

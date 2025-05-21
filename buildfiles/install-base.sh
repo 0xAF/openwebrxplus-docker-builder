@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # shellcheck disable=SC1091
-source /tmp/common.sh
+source /common.sh
 
 echo;echo;echo;echo;echo;echo;echo
 pinfo "Building base image..."
@@ -36,7 +36,7 @@ alias ls='ls \$LS_OPTIONS'
 export TERM=xterm-color
 
 export ENTER_SHELL=1
-source /tmp/common.sh
+source /common.sh
 
 echo;echo;echo;
 echo ================================================================
@@ -133,7 +133,7 @@ else
   wget --no-http-keep-alive "https://www.sdrplay.com/software/$SDRPLAY_BINARY"
 fi
 sh "$SDRPLAY_BINARY" --noexec --target sdrplay
-patch --verbose -Np0 < "/tmp/sdrplay/$SDRPLAY_BINARY.patch"
+patch --verbose -Np0 < "/sdrplay-patch/$SDRPLAY_BINARY.patch"
 cd sdrplay
 mkdir -p /etc/udev/rules.d
 ./install_lib.sh
@@ -157,7 +157,7 @@ chmod +x /etc/s6-overlay/s6-rc.d/sdrplay/run
 ln -sf /opt/sdrplay_api/sdrplay_apiService /usr/local/bin/
 
 popd
-rm -rf /tmp/sdrplay
+rm -rf /sdrplay
 
 
 # ---------------------------------------------------------------------
