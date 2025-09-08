@@ -52,13 +52,76 @@ export PATH=$PATH:/command
 _EOF_
 
 
+# Detect VERSION_CODENAME from /etc/os-release
+VERSION_CODENAME=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d= -f2 | tr -d '"')
+
+case "$VERSION_CODENAME" in
+  bookworm)
+    pinfo "Detected Debian Bookworm."
+    PACKAGES='
+      libboost-program-options1.74.0
+      libboost-log1.74.0
+      libconfig++9v5
+      libvolk2.5
+      libomp5-14
+      libasound2
+      libcurl4
+    '
+    ;;
+  trixie)
+    pinfo "Detected Debian Trixie."
+    PACKAGES='
+      libboost-program-options1.83.0
+      libboost-log1.83.0
+      libconfig++11
+      libvolk3.2
+      libomp5-17t64
+      libasound2t64
+      libcurl4t64
+    '
+    ;;
+  *)
+    perror "Unknown or unsupported (Debian) VERSION_CODENAME: $VERSION_CODENAME"
+    exit 1
+    ;;
+esac
+
 pinfo "Update apt and install packages..."
 apt update
-apt -y install --no-install-recommends wget gpg ca-certificates patch sudo vim-tiny xz-utils libairspyhf1 libiio0 libad9361-0 libpopt0 alsa-utils libhidapi-hidraw0 libhidapi-libusb0 libasound2 libfftw3-single3 libboost-program-options1.74.0 libboost-log1.74.0 libcurl4 libliquid1 libncurses6 libpulse0 libconfig++9v5 less libjemalloc2 libvolk2.5 libnng1 libzstd1 libomp5-14 python3-paho-mqtt libglfw3 socat usbutils ocl-icd-opencl-dev jq
+apt -y install --no-install-recommends \
+  wget \
+  gpg \
+  ca-certificates \
+  patch \
+  sudo \
+  vim-tiny \
+  xz-utils \
+  libairspyhf1 \
+  libiio0 \
+  libad9361-0 \
+  libpopt0 \
+  alsa-utils \
+  libhidapi-hidraw0 \
+  libhidapi-libusb0 \
+  libfftw3-single3 \
+  libliquid1 \
+  libncurses6 \
+  libpulse0 \
+  less \
+  libjemalloc2 \
+  libnng1 \
+  libzstd1 \
+  python3-paho-mqtt \
+  libglfw3 \
+  socat \
+  usbutils \
+  ocl-icd-opencl-dev \
+  jq \
+  ${PACKAGES}
 
 pinfo "Add repos and update apt again..."
 wget -O - https://luarvique.github.io/ppa/openwebrx-plus.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/openwebrx-plus.gpg
-echo "deb [signed-by=/etc/apt/trusted.gpg.d/openwebrx-plus.gpg] https://luarvique.github.io/ppa/bookworm ./" > /etc/apt/sources.list.d/openwebrx-plus.list
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/openwebrx-plus.gpg] https://luarvique.github.io/ppa/${VERSION_CODENAME} ./" > /etc/apt/sources.list.d/openwebrx-plus.list
 # wget -O - https://repo.openwebrx.de/debian/key.gpg.txt | gpg --dearmor -o /usr/share/keyrings/openwebrx.gpg
 # echo "deb [signed-by=/usr/share/keyrings/openwebrx.gpg] https://repo.openwebrx.de/debian/ experimental main" > /etc/apt/sources.list.d/openwebrx.list
 
@@ -182,7 +245,7 @@ chmod +x /etc/s6-overlay/s6-rc.d/codecserver/run
 
 
 pwarn "Tiny image..."
-SUDO_FORCE_REMOVE=yes apt remove --allow-remove-essential -y --purge --autoremove \
+SUDO_FORCE_REMOVE=yes apt remove --allow-remove-essential -y --purge --autoremove --ignore-missing \
   dmsetup adwaita-icon-theme ghostscript \
   gsfonts gstreamer1.0-gl \
   patch qttranslations5-l10n \
@@ -193,7 +256,7 @@ SUDO_FORCE_REMOVE=yes apt remove --allow-remove-essential -y --purge --autoremov
   gnupg gpg gstreamer1.0-plugins-base gtk-update-icon-cache manpages mount \
   qtwayland5 sudo e2fsprogs libapparmor1 libargon2-1 libatk1.0-0 libatspi2.0-0 \
   libcairo-gobject2 libfdisk1 netpbm tzdata ucf xdg-user-dirs xfonts-utils xfonts-encodings \
-  xz-utils util-linux sensible-utils poppler-data login bsdutils
+  xz-utils util-linux sensible-utils poppler-data login bsdutils systemd systemd-sysv
 
 apt install tzdata
 

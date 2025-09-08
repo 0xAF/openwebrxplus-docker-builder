@@ -1,14 +1,14 @@
 FROM debian:bookworm-slim AS build
 ARG MAKEFLAGS
-COPY build-packages.sh /
-RUN /build-packages.sh && rm -f /build-packages.sh
+COPY build-softmbe-packages.sh /
+RUN /build-softmbe-packages.sh && rm -f /build-softmbe-packages.sh
 
 FROM slechev/openwebrxplus:latest
 ARG ARCH
 ARG MAKEFLAGS
 COPY --from=build /deb /deb
-COPY install-packages.sh /
-RUN /install-packages.sh && rm -f /install-packages.sh
+COPY install-softmbe-packages.sh /
+RUN /install-softmbe-packages.sh && rm -f /install-softmbe-packages.sh
 
 #ENV S6_CMD_ARG0="/opt/openwebrx/docker/scripts/run.sh"
 #WORKDIR /opt/openwebrx

@@ -28,7 +28,8 @@ dpkg -i "$BUILD_CACHE"/soapysdr-module-plutosdr_*.deb
 dpkg -i "$BUILD_CACHE"/runds-connector_*.deb
 
 pinfo "Installing rest of the binaries from rootfs..."
-cp -a "$BUILD_ROOTFS"/* /
+cp -av "$BUILD_ROOTFS"/* /
+sleep 3
 ldconfig /etc/ld.so.conf.d
 
 pinfo "This is a RELEASE (v${OWRXVERSION:-}) build."

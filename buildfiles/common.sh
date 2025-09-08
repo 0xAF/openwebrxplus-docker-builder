@@ -4,10 +4,10 @@
 : ${TERM:=xterm-color}
 export TERM
 
-function perror() { printf "\e[7;38;5;1m[+] %-85s\e[0m\n" "$*"; }
-function pok() { printf "\e[7;38;5;2m[+] %-85s\e[0m\n" "$*"; }
-function pwarn() { printf "\e[7;38;5;3m[+] %-85s\e[0m\n" "$*"; }
-function pinfo() { printf "\e[7;38;5;12m[+] %-85s\e[0m\n" "$*"; }
+function perror() { printf "\e[38;5;15;48;5;1m[+] %-85s\e[0m\n" "$*"; }
+function pok() { printf "\e[38;5;15;48;5;34m[+] %-85s\e[0m\n" "$*"; }
+function pwarn() { printf "\e[38;5;15;48;5;3m[+] %-85s\e[0m\n" "$*"; }
+function pinfo() { printf "\e[38;5;15;48;5;12m[+] %-85s\e[0m\n" "$*"; }
 
 export MARCH=native
 case `uname -m` in
@@ -47,9 +47,11 @@ fi
 function cmakebuild() {
   cd $1
   if [[ ! -z "${2:-}" ]]; then
+    pinfo "Checking out git branch/tag/commit $2"
     git checkout $2
   fi
   if [[ -f ".gitmodules" ]]; then
+    pinfo "Updating git submodules"
     git submodule update --init
   fi
   rm -rf build

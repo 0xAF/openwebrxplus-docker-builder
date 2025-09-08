@@ -17,8 +17,73 @@ pinfo "PLATFORM: ${PLATFORM}"
 
 echo "${BUILD_DATE:-unknown}" > /build-sources-date
 
+# Detect VERSION_CODENAME from /etc/os-release
+VERSION_CODENAME=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d= -f2 | tr -d '"')
+
+case "$VERSION_CODENAME" in
+  bookworm)
+    pinfo "Detected Debian Bookworm."
+    OS_PACKAGES='
+      libvolk2-dev
+    '
+    ;;
+  trixie)
+    pinfo "Detected Debian Trixie."
+    OS_PACKAGES='
+      libvolk-dev
+    '
+    ;;
+  *)
+    perror "Unknown or unsupported (Debian) VERSION_CODENAME: $VERSION_CODENAME"
+    exit 1
+    ;;
+esac
+
 pinfo "Install dev packages..."
-BUILD_PACKAGES="git cmake make patch wget sudo libusb-1.0-0-dev libsoapysdr-dev debhelper build-essential pkg-config libairspyhf-dev dpkg-dev xxd libpopt-dev libiio-dev libad9361-dev libhidapi-dev libasound2-dev libfftw3-dev libowrx-connector-dev libboost-dev libboost-program-options-dev libboost-log-dev libboost-regex-dev gfortran libcurl4-openssl-dev qt5-qmake libpulse-dev libncurses-dev libliquid-dev libconfig++-dev libpng-dev libtiff-dev libjemalloc-dev libvolk2-dev libnng-dev libzstd-dev libomp-dev ocl-icd-opencl-dev libglfw3-dev"
+BUILD_PACKAGES="
+  git
+  cmake
+  make
+  patch
+  wget
+  sudo
+  libusb-1.0-0-dev
+  libsoapysdr-dev
+  debhelper
+  build-essential
+  pkg-config
+  libairspyhf-dev
+  dpkg-dev
+  xxd
+  libpopt-dev
+  libiio-dev
+  libad9361-dev
+  libhidapi-dev
+  libasound2-dev
+  libfftw3-dev
+  libowrx-connector-dev
+  libboost-dev
+  libboost-program-options-dev
+  libboost-log-dev
+  libboost-regex-dev
+  gfortran
+  libcurl4-openssl-dev
+  qt5-qmake
+  libpulse-dev
+  libncurses-dev
+  libliquid-dev
+  libconfig++-dev
+  libpng-dev
+  libtiff-dev
+  libjemalloc-dev
+  libnng-dev
+  libzstd-dev
+  libomp-dev
+  ocl-icd-opencl-dev
+  libglfw3-dev
+  $OS_PACKAGES
+"
+
 apt update
 # shellcheck disable=SC2086
 apt install -y --no-install-recommends $BUILD_PACKAGES
@@ -26,36 +91,76 @@ apt install -y --no-install-recommends $BUILD_PACKAGES
 mkdir -p "$BUILD_ROOTFS"/usr/local/bin
 
 
-# no deb
-if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/libmirisdr.so.4 ]; then
-  pinfo "Install libmirisdr-5..."
-  if [ -d "libmirisdr-5" ]; then
-    cd libmirisdr-5
-    git pull
-    cd ..
+if [[ $(uname -m) != "armv7"* ]]; then # disable libmirics for armv7 for now... the build is failing
+  if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules0.8/libsoapyMiriSupport.so ]; then
+    # no deb
+    #if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/libmirisdr.so.4 ]; then
+      pinfo "Install libmirisdr-5..."
+      if [ -d "libmirisdr-5" ]; then
+        cd libmirisdr-5
+        git pull
+        cd ..
+      else
+        git clone https://github.com/ericek111/libmirisdr-5
+      fi
+
+      cmakebuild libmirisdr-5
+    #else
+    #  pinfo "libmirisdr-5 already built..."
+    #fi
+
+    pinfo "Install SoapyMiri..."
+    if [ -d "SoapyMiri" ]; then
+      cd SoapyMiri
+      git pull
+      cd ..
+    else
+      git clone https://github.com/ericek111/SoapyMiri
+    fi
+
+    cmakebuild SoapyMiri
   else
-    git clone https://github.com/ericek111/libmirisdr-5
+    pinfo "SoapyMiri already built..."
+  fi
+else 
+  pinfo "======== Skipping libmirisdr and SoapyMiri for armv7..."
+fi # disable mirisdr for armv7
+
+
+if [[ $(uname -m) != "armv7"* ]]; then # disable libmirics for armv7 for now... the build is failing
+  # no deb
+  if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/libhydrasdr.so.1.0.2 ]; then
+    pinfo "Install libhydrasdr (rfone_host)..."
+    if [ -d "rfone_host" ]; then
+      cd rfone_host
+      git pull
+      cd ..
+    else
+      git clone https://github.com/hydrasdr/rfone_host
+    fi
+
+    cmakebuild rfone_host
+  else
+    pinfo "rfone_host already built..."
   fi
 
-  cmakebuild libmirisdr-5
-else
-  pinfo "libmirisdr-5 already built..."
-fi
+  if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules0.8/libSoapyHydraSDR.so ]; then
+    pinfo "Install SoapyHydraSDR..."
+    if [ -d "SoapyHydraSDR" ]; then
+      cd SoapyHydraSDR
+      git pull
+      cd ..
+    else
+      git clone https://github.com/hydrasdr/SoapyHydraSDR
+    fi
 
-if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules*/libsoapyMiriSupport.so ]; then
-  pinfo "Install SoapyMiri..."
-  if [ -d "SoapyMiri" ]; then
-    cd SoapyMiri
-    git pull
-    cd ..
+    cmakebuild SoapyHydraSDR
   else
-    git clone https://github.com/ericek111/SoapyMiri
+    pinfo "SoapyHydraSDR already built..."
   fi
-
-  cmakebuild SoapyMiri
-else
-  pinfo "SoapyMiri already built..."
-fi
+else 
+  pinfo "======== Skipping libhydra and SoapyHydra for armv7..."
+fi # disable hydrasdr for armv7
 
 # has deb
 if ! ls librtlsdr0_*.deb 1>/dev/null 2>&1; then
@@ -283,17 +388,23 @@ cp -a "$BUILD_ROOTFS"/usr/local/lib/* /usr/local/lib/
 # no deb
 if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/m17-demod ]; then
   pinfo "Install M17..."
+  rm -rf m17-cxx-demod
   if [ -d "m17-cxx-demod" ]; then
     cd m17-cxx-demod
+    echo "checkout"
     git checkout .
     git checkout master
+    echo "pull"
     git pull
+    echo "submodule"
+    git submodule update --init --recursive
     cd ..
   else
     git clone https://github.com/mobilinkd/m17-cxx-demod.git
   fi
 
-  cmakebuild m17-cxx-demod v2.3
+  # cmakebuild m17-cxx-demod v2.3 # does not compile on trixie
+  cmakebuild m17-cxx-demod # master works for bookworm and trixie
 else
   pinfo "M17 already built..."
 fi

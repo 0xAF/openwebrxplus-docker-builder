@@ -8,8 +8,6 @@ source "${CWD}"/lib/log.sh
 DOCKER_HUB_USER=slechev
 PRODUCT=openwebrxplus
 DATE=$(date +%F)
-TEST_IMG="${DOCKER_HUB_USER}/${PRODUCT}"
-TEST_IMG="${DOCKER_HUB_USER}/${PRODUCT}-softmbe"
 
 MAKEFLAGS=-j$(nproc --ignore=4)
 
@@ -90,12 +88,36 @@ get_owrxp_version() {
 build() {
   check-apt || start-apt-cache
 
+  local DOCKERFILE
+  DOCKERFILE=${1:-"buildfiles/Dockerfile"}
+
+  if [ ! -f "${DOCKERFILE}" ]; then
+    log err "Cannot find Dockerfile '${DOCKERFILE}'"
+    exit 1
+  fi
+
+  local PROD
+  PROD=${2:-"$PRODUCT"}
+
+  local PRODUCT_EXTRA
+  PRODUCT_EXTRA=""
+  if [[ "${DOCKERFILE}" == *Dockerfile* ]]; then
+    PRODUCT_EXTRA="${DOCKERFILE#*Dockerfile}"
+  fi
+
+  local CACHE_DIR
+  CACHE_DIR="${PROD}${PRODUCT_EXTRA}"
+  CACHE_DIR=${CACHE_DIR//[^a-zA-Z0-9._-]/_} # sanitize
+
+  CACHE_DIR="$(pwd)/cache/${CACHE_DIR}"
+  log inf "Using cache dir: ${CACHE_DIR}"
+
   local VER
   VER=$(get_owrxp_version)
-  log inf "Building '${PRODUCT}:${VER}'"
+  log inf "Building '${PROD}${PRODUCT_EXTRA}:${VER}'"
   echo
 
-  mkdir -p cache
+  mkdir -p "${CACHE_DIR}"
   # create docker builder https://docs.docker.com/build/building/multi-platform/
   # we enable networking so the builder container has access to the host network (needed for registry)
   log inf "Creating docker builder for multiarch..."
@@ -107,19 +129,19 @@ build() {
     --driver-opt network=host \
     2>/dev/null || true # ignore errors if already created
 
-  log inf "Building the image for AMD64, ARM64 and ARM32v7."
-  time docker buildx build \
+  log inf "Building $PROD$PRODUCT_EXTRA from $DOCKERFILE for AMD64, ARM64 and ARM32v7."
+  time docker buildx build -f "${DOCKERFILE}" \
     --platform linux/amd64,linux/arm64,linux/arm/v7 \
-    --build-context mycache="$(pwd)"/cache \
-    --cache-from type=local,src="$(pwd)"/cache \
-    --cache-to type=local,dest="$(pwd)"/cache \
+    --build-context mycache="${CACHE_DIR}" \
+    --cache-from type=local,src="${CACHE_DIR}" \
+    --cache-to type=local,dest="${CACHE_DIR}" \
     --build-arg MAKEFLAGS="${MAKEFLAGS}" \
     --build-arg BUILD_DATE="${DATE}" \
-    --build-arg PRODUCT="${PRODUCT}" \
+    --build-arg PRODUCT="${PROD}${PRODUCT_EXTRA}" \
     --build-arg OWRXVERSION="${VER}" \
     --build-arg APT_PROXY="${APT_PROXY}" \
-    -t "${DOCKER_HUB_USER}"/"${PRODUCT}":"${VER}" \
-    -t "${DOCKER_HUB_USER}"/"${PRODUCT}" \
+    -t "${DOCKER_HUB_USER}"/"${PROD}${PRODUCT_EXTRA}":"${VER}" \
+    -t "${DOCKER_HUB_USER}"/"${PROD}${PRODUCT_EXTRA}" \
     --pull \
     --push \
     ./buildfiles || exit 1
@@ -131,19 +153,23 @@ build() {
   #--cache-from=type=local,src=`pwd`/cache
   #--cache-to=type=local,dest=`pwd`/cache
 
-  log inf "Building SoftMBE image for AMD64, ARM64 and ARM32v7."
-  time docker buildx build \
-    --platform linux/amd64,linux/arm64,linux/arm/v7 \
-    --build-arg MAKEFLAGS="${MAKEFLAGS}" \
-    -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe":"${VER}" \
-    -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe" \
-    --pull \
-    --push \
-    ./buildfiles-softmbe || exit 1
+  if [[ "${PRODUCT_EXTRA}" != *softmbe* ]]; then
+    log inf "Building SoftMBE image $PROD$PRODUCT_EXTRA for AMD64, ARM64 and ARM32v7."
+    build "buildfiles/Dockerfile-softmbe" "${PROD}${PRODUCT_EXTRA}"
+  fi
+  # time docker buildx build \
+  #   --platform linux/amd64,linux/arm64,linux/arm/v7 \
+  #   --build-arg MAKEFLAGS="${MAKEFLAGS}" \
+  #   -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe${PRODUCT_EXTRA}":"${VER}" \
+  #   -t "${DOCKER_HUB_USER}"/"${PRODUCT}-softmbe${PRODUCT_EXTRA}" \
+  #   --pull \
+  #   --push \
+  #   ./buildfiles-softmbe || exit 1
 
-  log inf "Removing docker builder (keeping state/caches for next use)..."
-  docker buildx rm --keep-state owrxp-builder # keep state is needed to keep the caches for the next build
-
+  if [[ "${PRODUCT_EXTRA}" != *softmbe* ]]; then
+    log inf "Removing docker builder (keeping state/caches for next use)..."
+    docker buildx rm --keep-state owrxp-builder # keep state is needed to keep the caches for the next build
+  fi
 }
 
 run_internal() {
@@ -161,13 +187,10 @@ run_internal() {
 }
 
 run() {
-  docker pull ${TEST_IMG} || true
-  run_internal ${TEST_IMG}
-}
-
-run-from-hub() {
-  docker pull ${TEST_IMG} || true
-  run_internal ${TEST_IMG}
+  local IMAGE
+  IMAGE=${1:-"${DOCKER_HUB_USER}/${PRODUCT}"}
+  docker pull ${IMAGE} || true
+  run_internal ${IMAGE}
 }
 
 dev_internal() {
@@ -188,13 +211,10 @@ dev_internal() {
 }
 
 dev() {
-  docker pull ${TEST_IMG} || true
-  dev_internal ${TEST_IMG}
-}
-
-dev-from-hub() {
-  docker pull ${TEST_IMG} || true
-  dev_internal ${TEST_IMG}
+  local IMAGE
+  IMAGE=${1:-"${DOCKER_HUB_USER}/${PRODUCT}"}
+  docker pull ${IMAGE} || true
+  dev_internal ${IMAGE}
 }
 
 ## MAIN
@@ -203,13 +223,11 @@ check-docker
 
 usage() {
   log war "Usage: $0 [command]"
-  log war '. commands:'
-  log war '... build - build the image and push to hub.docker.com'
-  log war '... run - run container from latest image'
-  log war '... run-from-hub - run container from latest image from hub.docker.com'
-  log war '... dev - start container with bash shell'
-  log war '... dev-from-hub - start container from hub.docker.com with bash shell'
-  log war "... add-admin - to add 'admin' user to running docker container"
+  log war ". commands:"
+  log war "... build [Dockerfile] - build the image and push to hub.docker.com"
+  log war "... run [${DOCKER_HUB_USER}/${PRODUCT}] - run container from latest image"
+  log war "... dev [${DOCKER_HUB_USER}/${PRODUCT}] - start container with bash shell"
+  log war "... add-admin - to add 'admin' user to the running docker container"
   log war "... clean - remove the builder and the caches."
   echo
   log war "You can specify MAKEFLAGS for docker builds:"
@@ -218,7 +236,7 @@ usage() {
 
 if [[ $(type -t "$1") == 'function' ]]; then
   # shellcheck disable=SC2068
-  $1 $@
+  "$@"
 else
   [ "$1" != "" ] && log err "Command '$1' not found..." && echo
   usage
