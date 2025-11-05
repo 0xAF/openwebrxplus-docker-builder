@@ -165,6 +165,7 @@ fi # disable hydrasdr for armv7
 # has deb
 if ! ls librtlsdr0_*.deb 1>/dev/null 2>&1; then
   pinfo "Install RTL-SDR Blog (v4)..."
+  rm -rf rtl-sdr-blog
   if [ -d "rtl-sdr-blog" ]; then
     cd rtl-sdr-blog
     git checkout .
@@ -358,6 +359,7 @@ fi
 # no deb
 if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/freedv_rx ]; then
   pinfo "Install FreeDV..."
+  # rm -rf codec2
   if [ -d "codec2" ]; then
     cd codec2
     git checkout .
@@ -365,6 +367,7 @@ if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/freedv_rx ]; then
     git pull
     cd ..
   else
+    rm -rf codec2
     git clone https://github.com/drowe67/codec2.git
   fi
 
@@ -416,7 +419,7 @@ if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/msk144decoder ]; then
   if [ -d "msk144decoder" ]; then
     cd msk144decoder
     git checkout .
-    git checkout master
+    git checkout main
     git pull
     cd ..
   else
@@ -429,26 +432,27 @@ else
 fi
 
 
+# installled from package now
 # no deb
-if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/dream ]; then
-  pinfo "Install DRM..."
-  if ! [ -d "dream" ]; then
-    rm -f dream-2.1.1-svn808.tar.gz
-    wget https://downloads.sourceforge.net/project/drm/dream/2.1.1/dream-2.1.1-svn808.tar.gz
-    tar xvfz dream-2.1.1-svn808.tar.gz
-    cd dream
-    patch -Np0 < /files/dream/dream.patch
-    cd ..
-  fi
-
-  cd dream
-  qmake CONFIG+=console
-  make
-  install -D -m 0755 dream "$BUILD_ROOTFS"/usr/local/bin/
-  cd ..
-else
-  pinfo "DRM already built..."
-fi
+#if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/dream ]; then
+#  pinfo "Install DRM..."
+#  if ! [ -d "dream" ]; then
+#    rm -f dream-2.1.1-svn808.tar.gz
+#    wget https://downloads.sourceforge.net/project/drm/dream/2.1.1/dream-2.1.1-svn808.tar.gz
+#    tar xvfz dream-2.1.1-svn808.tar.gz
+#    cd dream
+#    patch -Np0 < /files/dream/dream.patch
+#    cd ..
+#  fi
+#
+#  cd dream
+#  qmake CONFIG+=console
+#  make
+#  install -D -m 0755 dream "$BUILD_ROOTFS"/usr/local/bin/
+#  cd ..
+#else
+#  pinfo "DRM already built..."
+#fi
 
 
 # TODO: has deb

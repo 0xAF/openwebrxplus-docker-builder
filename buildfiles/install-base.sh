@@ -55,6 +55,19 @@ _EOF_
 # Detect VERSION_CODENAME from /etc/os-release
 VERSION_CODENAME=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d= -f2 | tr -d '"')
 
+# Enable Debian non-free repositories for modern releases (bookworm, trixie)
+case "$VERSION_CODENAME" in
+  bookworm|trixie)
+    pinfo "Enabling Debian non-free repositories for $VERSION_CODENAME..."
+    cat > /etc/apt/sources.list.d/debian-nonfree.list << EOF
+deb http://deb.debian.org/debian $VERSION_CODENAME main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian $VERSION_CODENAME-updates main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security $VERSION_CODENAME-security main contrib non-free non-free-firmware
+EOF
+    ;;
+  *) ;;
+esac
+
 case "$VERSION_CODENAME" in
   bookworm)
     pinfo "Detected Debian Bookworm."
@@ -228,7 +241,7 @@ rm -rf /sdrplay
 # ---------------------------------------------------------------------
 pinfo "Install OWRX deps from deb packages..."
 apt-install-depends openwebrx
-apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec soapysdr-tools
+apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec soapysdr-tools dream
 
 mkdir -p \
   /etc/s6-overlay/s6-rc.d/codecserver/dependencies.d \
