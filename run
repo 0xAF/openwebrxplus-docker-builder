@@ -201,6 +201,7 @@ dev_internal() {
     --device /dev/bus/usb \
     -v ./work/owrx/var:/var/lib/openwebrx \
     -v ./work/owrx/etc:/etc/openwebrx \
+	-v ./work/openwebrx:/openwebrx \
     --name ${PRODUCT}-dev \
     --entrypoint /init \
     -v "$(pwd)"/cache:/build_cache \

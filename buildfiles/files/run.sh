@@ -82,6 +82,16 @@ echo "+++ List of processes before OWRX start..."
 ps xa
 
 echo "+++ OpenWebRX+ starting."
+openwebrx() {
+  if [[ -f /openwebrx/openwebrx.py ]]; then
+    cd /openwebrx
+    # shellcheck disable=SC2068
+    ./openwebrx.py $@
+  else
+    # shellcheck disable=SC2068
+    command openwebrx $@
+  fi
+}
 # shellcheck disable=SC2068
 openwebrx $@ &
 
