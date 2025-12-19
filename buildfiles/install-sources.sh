@@ -591,6 +591,12 @@ if ! [ -f "$BUILD_ROOTFS"/usr/bin/satdump ]; then
   fi
 
   CMAKE_ARGS="-DBUILD_GUI=OFF" cmakebuild satdump
+  
+  # Ensure SatDump plugins are discoverable at /usr/local/lib/satdump/plugins
+  mkdir -p /usr/local/lib/satdump
+  # Create/refresh symlink (force + no-dereference)
+  ln -s /usr/lib/satdump/plugins /usr/local/lib/satdump/plugins
+  
 else
   pinfo "satdump built..."
 fi
