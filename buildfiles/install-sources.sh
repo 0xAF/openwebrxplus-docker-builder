@@ -155,6 +155,12 @@ if [[ $(uname -m) != "armv7"* ]]; then # disable libmirics for armv7 for now... 
     fi
 
     cmakebuild SoapyHydraSDR
+
+    if [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules0.8/libSoapyHydraSDR.so ]; then
+      # remove duplicate file, so SoapySDR uses the one in /usr/local/lib
+      rm -f "$BUILD_ROOTFS"/usr/lib/x86_64-linux-gnu/SoapySDR/modules0.8/libSoapyHydraSDR.so
+    fi
+
   else
     pinfo "SoapyHydraSDR already built..."
   fi
@@ -593,9 +599,9 @@ if ! [ -f "$BUILD_ROOTFS"/usr/bin/satdump ]; then
   CMAKE_ARGS="-DBUILD_GUI=OFF" cmakebuild satdump
   
   # Ensure SatDump plugins are discoverable at /usr/local/lib/satdump/plugins
-  mkdir -p /usr/local/lib/satdump
+  mkdir -p "$BUILD_ROOTFS"/usr/local/lib/satdump
   # Create/refresh symlink (force + no-dereference)
-  ln -s /usr/lib/satdump/plugins /usr/local/lib/satdump/plugins
+  ln -s /usr/lib/satdump/plugins "$BUILD_ROOTFS"/usr/local/lib/satdump/plugins
   
 else
   pinfo "satdump built..."
