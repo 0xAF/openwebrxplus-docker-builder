@@ -21,11 +21,15 @@ pinfo "Installing prebuilt deb packages..."
 dpkg -i "$BUILD_CACHE"/librtlsdr0_*.deb
 #dpkg -i $BUILD_CACHE/librtlsdr-dev_*.deb
 dpkg -i "$BUILD_CACHE"/rtl-sdr_*.deb
-dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-airspyhf_*.deb
-dpkg -i "$BUILD_CACHE"/soapysdr-module-airspyhf_*.deb
+if [[ $(uname -m) != "armv7"* ]]; then # disable for armv7 for now... the build is failing
+  dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-airspyhf_*.deb
+  dpkg -i "$BUILD_CACHE"/soapysdr-module-airspyhf_*.deb
+fi
 dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-plutosdr_*.deb
 dpkg -i "$BUILD_CACHE"/soapysdr-module-plutosdr_*.deb
 dpkg -i "$BUILD_CACHE"/runds-connector_*.deb
+
+echo "If you need SatDump, you can get the AppImage from https://github.com/SatDump/SatDump/releases/download/nightly/SatDump.AppImage" > /satdump-info.txt
 
 pinfo "Installing rest of the binaries from rootfs..."
 cp -av "$BUILD_ROOTFS"/* /

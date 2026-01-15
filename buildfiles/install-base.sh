@@ -130,6 +130,8 @@ apt -y install --no-install-recommends \
   usbutils \
   ocl-icd-opencl-dev \
   jq \
+  iproute2 \
+  util-linux \
   ${PACKAGES}
 
 pinfo "Add repos and update apt again..."
@@ -241,7 +243,7 @@ rm -rf /sdrplay
 # ---------------------------------------------------------------------
 pinfo "Install OWRX deps from deb packages..."
 apt-install-depends openwebrx
-apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec soapysdr-tools dream hackrf soapysdr-module-hackrf
+apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec soapysdr-tools dream hackrf soapysdr-module-hackrf sonde-decoders aprs-symbols
 
 mkdir -p \
   /etc/s6-overlay/s6-rc.d/codecserver/dependencies.d \

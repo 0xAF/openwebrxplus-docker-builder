@@ -197,6 +197,10 @@ dev_internal() {
   check-apt || start-apt-cache
   mkdir -p work/owrx/var work/owrx/etc
   docker run -it --rm \
+	--privileged \
+	--net=host \
+	-v /sys:/sys \
+	-v /dev:/dev \
     -p 8073:8073 \
     --device /dev/bus/usb \
     -v ./work/owrx/var:/var/lib/openwebrx \

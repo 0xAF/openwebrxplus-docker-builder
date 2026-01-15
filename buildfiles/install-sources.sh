@@ -90,6 +90,28 @@ apt install -y --no-install-recommends $BUILD_PACKAGES
 
 mkdir -p "$BUILD_ROOTFS"/usr/local/bin
 
+# has deb
+# shellcheck disable=SC2144
+# shellcheck disable=SC2086
+#if ! [ -f $BUILD_ROOTFS/usr/local/bin/rs41mod ]; then
+#  pinfo "Install RadioSonde Auto_RX..."
+#  if [ -d "radiosonde_auto_rx" ]; then
+#    cd radiosonde_auto_rx
+#    git pull
+#    cd ..
+#  else
+#    git clone https://github.com/projecthorus/radiosonde_auto_rx
+#  fi
+#
+#  cd radiosonde_auto_rx/auto_rx/
+#  ./build.sh
+#  cp dfm09mod dft_detect fsk_demod imet4iq imet54mod iq_dec lms6Xmod m10mod m20mod meisei100mod mk2a1680mod mp3h1mod mts01mod rs41mod rs92mod weathex301d $BUILD_ROOTFS/usr/local/bin/
+#  cd ../../
+#else
+#  pinfo "RadioSonde Auto_RX already built..."
+#fi
+
+
 
 if [[ $(uname -m) != "armv7"* ]]; then # disable libmirics for armv7 for now... the build is failing
   if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules0.8/libsoapyMiriSupport.so ]; then
@@ -190,25 +212,29 @@ else
 fi
 
 # has deb
-if ! ls soapysdr0.8-module-airspyhf*.deb 1>/dev/null 2>&1; then
-  pinfo "Install AirSpyHF..."
-  if [ -d "SoapyAirspyHF" ]; then
+if [[ $(uname -m) != "armv7"* ]]; then # disable libmirics for armv7 for now... the build is failing
+  if ! ls soapysdr0.8-module-airspyhf*.deb 1>/dev/null 2>&1; then
+    pinfo "Install AirSpyHF..."
+    if [ -d "SoapyAirspyHF" ]; then
+      cd SoapyAirspyHF
+      git checkout .
+      git checkout master
+      git pull
+      cd ..
+    else
+      git clone https://github.com/pothosware/SoapyAirspyHF.git
+    fi
+    # cmakebuild SoapyAirspyHF 5488dac5b44f1432ce67b40b915f7e61d3bd4853
+    # cmakebuild SoapyAirspyHF
     cd SoapyAirspyHF
-    git checkout .
-    git checkout master
-    git pull
+    patch -p1 < /files/airspy/version.patch
+    dpkg-buildpackage -b
     cd ..
   else
-    git clone https://github.com/pothosware/SoapyAirspyHF.git
+    pinfo "AirSpyHF already built..."
   fi
-  # cmakebuild SoapyAirspyHF 5488dac5b44f1432ce67b40b915f7e61d3bd4853
-  # cmakebuild SoapyAirspyHF
-  cd SoapyAirspyHF
-  patch -p1 < /files/airspy/version.patch
-  dpkg-buildpackage -b
-  cd ..
-else
-  pinfo "AirSpyHF already built..."
+else 
+  pinfo "======== Skipping AirSpyHF for armv7..."
 fi
 
 # no deb
@@ -432,7 +458,8 @@ if ! [ -f "$BUILD_ROOTFS"/usr/local/bin/msk144decoder ]; then
     git clone https://github.com/alexander-sholohov/msk144decoder.git
   fi
 
-  MAKEFLAGS="" cmakebuild msk144decoder fe2991681e455636e258e83c29fd4b2a72d16095
+  # MAKEFLAGS="" cmakebuild msk144decoder fe2991681e455636e258e83c29fd4b2a72d16095
+  MAKEFLAGS="" cmakebuild msk144decoder 761d0b3a61cde664d4c25b1c6ff1d9c0e395af23
 else
   pinfo "MSK144 already built..."
 fi
@@ -461,7 +488,7 @@ fi
 #fi
 
 
-# TODO: has deb
+# has deb
 #if ! [ -f $BUILD_ROOTFS/usr/local/bin/dump1090 ]; then
 #  pinfo "Install Dump1090..."
 #  if [ -d "dump1090" ]; then
@@ -583,42 +610,43 @@ else
 fi
 
 
+pinfo "Not building SatDump from sources anymore. Please use the AppImage provided by the SatDump project."
 # no deb
-if ! [ -f "$BUILD_ROOTFS"/usr/bin/satdump ]; then
-  pinfo "Install satdump..."
-  if [ -d "satdump" ]; then
-    cd satdump
-    git checkout .
-    git checkout master
-    git pull
-    cd ..
-  else
-    git clone https://github.com/altillimity/satdump.git
-  fi
+#if ! [ -f "$BUILD_ROOTFS"/usr/bin/satdump ]; then
+#  pinfo "Install satdump..."
+#  if [ -d "satdump" ]; then
+#    cd satdump
+#    git checkout .
+#    git checkout master
+#    git pull
+#    cd ..
+#  else
+#    git clone https://github.com/altillimity/satdump.git
+#  fi
+#
+#  CMAKE_ARGS="-DBUILD_GUI=OFF" cmakebuild satdump
+#  
+#  # Ensure SatDump plugins are discoverable at /usr/local/lib/satdump/plugins
+#  mkdir -p "$BUILD_ROOTFS"/usr/local/lib/satdump
+#  # Create/refresh symlink (force + no-dereference)
+#  ln -s /usr/lib/satdump/plugins "$BUILD_ROOTFS"/usr/local/lib/satdump/plugins
+#  
+#else
+#  pinfo "satdump built..."
+#fi
 
-  CMAKE_ARGS="-DBUILD_GUI=OFF" cmakebuild satdump
-  
-  # Ensure SatDump plugins are discoverable at /usr/local/lib/satdump/plugins
-  mkdir -p "$BUILD_ROOTFS"/usr/local/lib/satdump
-  # Create/refresh symlink (force + no-dereference)
-  ln -s /usr/lib/satdump/plugins "$BUILD_ROOTFS"/usr/local/lib/satdump/plugins
-  
-else
-  pinfo "satdump built..."
-fi
-
-# no deb
-if ! [ -d "$BUILD_ROOTFS"/usr/share/aprs-symbols ]; then
-  pinfo "Install APRS Symbols..."
-  git clone https://github.com/hessu/aprs-symbols "$BUILD_ROOTFS"/usr/share/aprs-symbols
-  pushd "$BUILD_ROOTFS"/usr/share/aprs-symbols
-  git checkout 5c2abe2658ee4d2563f3c73b90c6f59124839802
-  # remove unused files (including git meta information)
-  rm -rf .git aprs-symbols.ai aprs-sym-export.js
-  popd
-else
-  pinfo "APRS Symbols already installed..."
-fi
+# has deb
+#if ! [ -d "$BUILD_ROOTFS"/usr/share/aprs-symbols ]; then
+#  pinfo "Install APRS Symbols..."
+#  git clone https://github.com/hessu/aprs-symbols "$BUILD_ROOTFS"/usr/share/aprs-symbols
+#  pushd "$BUILD_ROOTFS"/usr/share/aprs-symbols
+#  git checkout 5c2abe2658ee4d2563f3c73b90c6f59124839802
+#  # remove unused files (including git meta information)
+#  rm -rf .git aprs-symbols.ai aprs-sym-export.js
+#  popd
+#else
+#  pinfo "APRS Symbols already installed..."
+#fi
 
 
 rm -f "$BUILD_CACHE"/*.buildinfo
