@@ -8,13 +8,15 @@ if [[ -n "${TZ:-}" ]] && [[ -f /usr/share/zoneinfo/"${TZ:-}" ]]; then
 	dpkg-reconfigure --frontend noninteractive tzdata
 fi
 
-mkdir -p /etc/openwebrx/openwebrx.conf.d /var/lib/openwebrx /tmp/openwebrx
+mkdir -p /etc/openwebrx/openwebrx.conf.d /etc/openwebrx/vendor /var/lib/openwebrx /var/lib/openwebrx/vendor /tmp/openwebrx
 
 echo "+++ adding new files (if any) to /etc/openwebrx"
 cp -avn /owrx-init/etc/* /etc/openwebrx/
+cp -a /owrx-init/etc/* /etc/openwebrx/vendor/
 
 echo "+++ adding new files (if any) to /var/lib/openwebrx"
 cp -avn /owrx-init/var/* /var/lib/openwebrx/
+cp -a /owrx-init/var/* /var/lib/openwebrx/vendor/
 
 if [[ ! -f /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf ]] ; then
   cat << EOF > /etc/openwebrx/openwebrx.conf.d/20-temporary-directory.conf

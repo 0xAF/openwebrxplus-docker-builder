@@ -37,8 +37,8 @@ RUN --mount=type=cache,target=/build_cache \
 COPY /files/healthcheck.sh /healthcheck.sh
 RUN chmod +x /healthcheck.sh
 
-FROM scratch AS export
-COPY --from=final / /
+#FROM scratch AS export
+#COPY --from=final / /
 
 HEALTHCHECK CMD /healthcheck.sh || exit 1
 

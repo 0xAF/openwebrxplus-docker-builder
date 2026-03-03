@@ -28,6 +28,7 @@ fi
 dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-plutosdr_*.deb
 dpkg -i "$BUILD_CACHE"/soapysdr-module-plutosdr_*.deb
 dpkg -i "$BUILD_CACHE"/runds-connector_*.deb
+dpkg -i "$BUILD_CACHE"/webrx-rade-decode-minimal*.deb
 
 echo "If you need SatDump, you can get the AppImage from https://github.com/SatDump/SatDump/releases/download/nightly/SatDump.AppImage" > /satdump-info.txt
 

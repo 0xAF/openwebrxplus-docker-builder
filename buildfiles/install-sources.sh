@@ -112,6 +112,63 @@ mkdir -p "$BUILD_ROOTFS"/usr/local/bin
 #fi
 
 
+# has deb
+if ! ls webrx-rade-decode-minimal_*.deb 1>/dev/null 2>&1; then
+  pinfo "Install WebRX Rade Decode Minimal..."
+  if [ -d "radae_decoder" ]; then
+    cd radae_decoder
+    git checkout .
+    git checkout main
+    git pull
+    cd ..
+  else
+    git clone https://github.com/peterbmarks/radae_decoder
+  fi
+  # cmakebuild SoapyPlutoSDR 93717b32ef052e0dfa717aa2c1a4eb27af16111f
+  cd radae_decoder
+  arch="$(dpkg --print-architecture)"
+  if [ -f cmake/BuildOpus.cmake ]; then
+
+    # Create an imported target for Opus to avoid missing .a path
+    cat <<'EOF' >> cmake/BuildOpus.cmake
+
+# --- Add CMake imported target for static Opus ---
+if(NOT TARGET opus)
+    add_library(opus STATIC IMPORTED)
+    set_target_properties(opus PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/.cache/opus/src/.libs/libopus.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/.cache/opus/src/include"
+    )
+endif()
+EOF
+
+    sed -i -E 's/(BUILD_COMMAND[[:space:]]+)make$/\1make -j6/' cmake/BuildOpus.cmake
+    if [ "${arch}" = "arm64" ]; then
+      sed -i 's/\\ -mno-dotprod//g' cmake/BuildOpus.cmake
+      sed -i -E 's/CFLAGS=[^ )]+(\\ [^ )]+)*/CFLAGS=-march=armv8-a\\ -O2/' cmake/BuildOpus.cmake
+      if ! grep -q -- '--disable-intrinsics' cmake/BuildOpus.cmake; then
+        sed -i 's@./configure @./configure --disable-intrinsics @' cmake/BuildOpus.cmake
+      fi
+    elif [ "${arch}" = "armhf" ]; then
+      sed -i 's/CFLAGS=-march=native\\ -O2/CFLAGS=-march=armv7-a+fp\\ -mfloat-abi=hard\\ -O2/' cmake/BuildOpus.cmake
+      if ! grep -q -- '--disable-rtcd' cmake/BuildOpus.cmake; then
+        sed -i 's@./configure @./configure --disable-rtcd @' cmake/BuildOpus.cmake
+      fi
+      if ! grep -q -- '--disable-asm' cmake/BuildOpus.cmake; then
+        sed -i 's@./configure @./configure --disable-asm @' cmake/BuildOpus.cmake
+      fi
+      if ! grep -q -- '--disable-intrinsics' cmake/BuildOpus.cmake; then
+        sed -i 's@./configure @./configure --disable-intrinsics @' cmake/BuildOpus.cmake
+      fi
+    fi
+  fi
+  dpkg-buildpackage -us -uc -j"$(nproc --ignore=4)" -Ppkg.minimal
+  cd ..
+else
+  pinfo "WebRX Rade Decode Minimal already built..."
+fi
+
+
 
 if [[ $(uname -m) != "armv7"* ]]; then # disable libmirics for armv7 for now... the build is failing
   if ! [ -f "$BUILD_ROOTFS"/usr/local/lib/SoapySDR/modules0.8/libsoapyMiriSupport.so ]; then
