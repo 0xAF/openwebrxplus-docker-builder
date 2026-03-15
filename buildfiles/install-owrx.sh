@@ -15,7 +15,7 @@ pinfo "VERSION: ${OWRXVERSION}"
 echo "${BUILD_DATE:-}" > /build-date
 echo "${PRODUCT:-}"-"${OWRXVERSION:-${BUILD_DATE}}" > /build-image
 
-apt update
+apt update && apt upgrade -y
 
 pinfo "Installing prebuilt deb packages..."
 dpkg -i "$BUILD_CACHE"/librtlsdr0_*.deb
