@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="acarsdec"
+REPO_URL="https://github.com/TLeconte/acarsdec.git"
+REF="master"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/bin/acarsdec"; then
+  pinfo "Install ACARSdec..."
+  git_ensure_repo "acarsdec" "$REPO_URL"
+  git_checkout_ref "acarsdec" "$REF"
+
+  sed -i 's/-march=native/-march='"${MARCH}"'/g' acarsdec/CMakeLists.txt
+  cmakebuild acarsdec
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/bin/acarsdec"
+fi

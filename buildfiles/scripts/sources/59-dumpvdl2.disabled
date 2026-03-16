@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="dumpvdl2"
+REPO_URL="https://github.com/szpajder/dumpvdl2.git"
+REF="v2.3.0"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/bin/dumpvdl2"; then
+  pinfo "Install DumpVDL2..."
+  git_ensure_repo "dumpvdl2" "$REPO_URL"
+  git_checkout_ref "dumpvdl2" "$REF"
+
+  cmakebuild dumpvdl2 "$REF"
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/bin/dumpvdl2"
+fi

@@ -1,0 +1,31 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="libacars"
+REPO_URL="https://github.com/szpajder/libacars.git"
+REF="v2.2.0"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" \
+  "$BUILD_ROOTFS/usr/local/lib/libacars*.so*" \
+  "$BUILD_ROOTFS/usr/local/include/libacars*" \
+  "$BUILD_ROOTFS/usr/local/lib/pkgconfig/libacars*.pc"; then
+  pinfo "Install LibACARS..."
+  git_ensure_repo "libacars" "$REPO_URL"
+  git_checkout_ref "libacars" "$REF"
+
+  cmakebuild libacars "$REF"
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" \
+    "$BUILD_ROOTFS/usr/local/lib/libacars*.so*" \
+    "$BUILD_ROOTFS/usr/local/include/libacars*" \
+    "$BUILD_ROOTFS/usr/local/lib/pkgconfig/libacars*.pc"
+fi
+
+mkdir -p /usr/local/lib/pkgconfig/ /usr/local/include/
+cp -a "$BUILD_ROOTFS"/usr/local/include/libacars* /usr/local/include/ || true
+cp -a "$BUILD_ROOTFS"/usr/local/lib/libacars* /usr/local/lib/ || true
+cp -a "$BUILD_ROOTFS"/usr/local/lib/pkgconfig/libacars*.pc /usr/local/lib/pkgconfig/ || true

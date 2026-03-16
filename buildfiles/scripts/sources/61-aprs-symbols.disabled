@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="aprs-symbols"
+REPO_URL="https://github.com/hessu/aprs-symbols"
+REF="5c2abe2658ee4d2563f3c73b90c6f59124839802"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/share/aprs-symbols"; then
+  pinfo "Install APRS Symbols..."
+
+  rm -rf "$BUILD_ROOTFS/usr/share/aprs-symbols"
+  git clone "$REPO_URL" "$BUILD_ROOTFS/usr/share/aprs-symbols"
+  pushd "$BUILD_ROOTFS/usr/share/aprs-symbols"
+  git checkout "$REF"
+  rm -rf .git aprs-symbols.ai aprs-sym-export.js
+  popd
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/share/aprs-symbols"
+fi

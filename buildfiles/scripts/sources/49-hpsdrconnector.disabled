@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="hpsdrconnector"
+REPO_URL="https://github.com/jancona/hpsdrconnector.git"
+REF="v0.6.1"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/bin/hpsdrconnector"; then
+  pinfo "Install HPSDR..."
+  git_ensure_repo "hpsdrconnector" "$REPO_URL"
+  git_checkout_ref "hpsdrconnector" "$REF"
+
+  pushd hpsdrconnector
+  go build
+  install -D -m 0755 hpsdrconnector "$BUILD_ROOTFS/usr/local/bin/"
+  popd
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/bin/hpsdrconnector"
+fi
