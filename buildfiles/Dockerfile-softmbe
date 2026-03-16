@@ -1,7 +1,8 @@
 FROM debian:bookworm-slim AS build
 ARG MAKEFLAGS
-COPY build-softmbe-packages.sh /
-RUN /build-softmbe-packages.sh && rm -f /build-softmbe-packages.sh
+COPY build-softmbe-packages.sh common.sh /
+RUN --mount=type=cache,id=owrxp-buildcache-softmbe,target=/build_cache \
+	/build-softmbe-packages.sh && rm -f /build-softmbe-packages.sh
 
 FROM slechev/openwebrxplus:latest
 ARG ARCH

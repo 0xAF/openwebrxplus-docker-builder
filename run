@@ -8,6 +8,7 @@ source "${CWD}"/lib/log.sh
 DOCKER_HUB_USER=slechev
 PRODUCT=openwebrxplus
 DATE=$(date +%F)
+SOURCES_SCRIPTS_FINGERPRINT=$(find "${CWD}/buildfiles/scripts/sources" -maxdepth 1 -type f -name '*.sh' -print0 | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | awk '{print $1}')
 
 MAKEFLAGS=-j$(nproc --ignore=4)
 
@@ -47,23 +48,46 @@ check-apt() {
 }
 
 clean() {
-  stop-apt-cache
-  log inf "Removing APT-Cache"
-  sudo rm -rf "${CWD}"/apt-cache/apt-cacher-ng/
-  docker image rm sameersbn/apt-cacher-ng
+  local force
+  force=${1:-""}
 
-  log inf "Stopping and Removing BuildX container"
-  sudo docker buildx stop
-  sudo docker buildx rm
+  if [[ "${force}" != "--yes" ]]; then
+    log war "This will remove build caches, buildx builders, apt-cache containers, and local cache/work folders."
+    read -r -p "Continue? [y/N]: " ans
+    if [[ ! "${ans}" =~ ^[Yy]$ ]]; then
+      log war "Clean cancelled."
+      return 0
+    fi
+  fi
 
-  log inf "Removing BuildX cache"
-  sudo docker builder prune -af
+  log inf "Stopping APT cache stack..."
+  stop-apt-cache || true
 
-  log inf "Removing BuildX volume"
-  docker volume rm buildx_buildkit_owrxp-builder0_state
+  log inf "Removing APT cache data..."
+  sudo rm -rf "${CWD}/apt-cache/apt-cacher-ng" || true
+  docker image rm sameersbn/apt-cacher-ng >/dev/null 2>&1 || true
 
-  log inf "Removing local cache folder"
-  sudo rm -rf "${CWD}"/cache
+  log inf "Removing builder containers..."
+  docker ps -aq --filter name=buildx_buildkit_owrxp-builder | xargs -r docker rm -f >/dev/null 2>&1 || true
+
+  log inf "Removing buildx builders..."
+  docker buildx rm owrxp-builder >/dev/null 2>&1 || true
+  docker buildx ls 2>/dev/null | awk '/owrxp-builder/{print $1}' | xargs -r -n1 docker buildx rm >/dev/null 2>&1 || true
+
+  log inf "Pruning builder cache..."
+  docker builder prune -af >/dev/null 2>&1 || true
+
+  log inf "Removing buildx volumes..."
+  docker volume ls -q | grep -E '^buildx_buildkit_owrxp-builder' | xargs -r docker volume rm >/dev/null 2>&1 || true
+
+  log inf "Removing local cache/work folders..."
+  sudo rm -rf "${CWD}/cache" "${CWD}/work" || true
+
+  log inf "Pruning stopped containers and dangling networks..."
+  docker container prune -f >/dev/null 2>&1 || true
+  docker network prune -f >/dev/null 2>&1 || true
+
+  log suc "Clean completed. Fresh build state is ready."
 }
 
 check-docker() {
@@ -85,11 +109,37 @@ get_owrxp_version() {
     cut -d '"' -f 2
 }
 
+get_owrxp_commit() {
+  git ls-remote https://github.com/luarvique/openwebrx.git refs/heads/master 2>/dev/null | awk 'NR==1 {print $1}'
+}
+
 build() {
   check-apt || start-apt-cache
 
+  local force_final
+  force_final=0
+  local build_args
+  build_args=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force-final)
+        force_final=1
+        ;;
+      *)
+        build_args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  if [ "${#build_args[@]}" -gt 2 ]; then
+    log err "Too many arguments for build command."
+    usage
+    exit 1
+  fi
+
   local DOCKERFILE
-  DOCKERFILE=${1:-"buildfiles/Dockerfile"}
+  DOCKERFILE=${build_args[0]:-"buildfiles/Dockerfile"}
 
   if [ ! -f "${DOCKERFILE}" ]; then
     log err "Cannot find Dockerfile '${DOCKERFILE}'"
@@ -97,7 +147,7 @@ build() {
   fi
 
   local PROD
-  PROD=${2:-"$PRODUCT"}
+  PROD=${build_args[1]:-"$PRODUCT"}
 
   local PRODUCT_EXTRA
   PRODUCT_EXTRA=""
@@ -114,7 +164,20 @@ build() {
 
   local VER
   VER=$(get_owrxp_version)
+  local OWRX_REPO_COMMIT
+  OWRX_REPO_COMMIT=$(get_owrxp_commit)
+  if [[ -z "${OWRX_REPO_COMMIT}" ]]; then
+    log war "Cannot resolve OpenWebRX upstream commit, using fallback key from version ${VER}."
+    OWRX_REPO_COMMIT="version-${VER}"
+  fi
+  local FINAL_CACHE_BUSTER
+  FINAL_CACHE_BUSTER="${OWRX_REPO_COMMIT}"
+  if [ "$force_final" -eq 1 ]; then
+    FINAL_CACHE_BUSTER="force-$(date +%s)"
+    log war "--force-final enabled: bypassing final layer cache (${FINAL_CACHE_BUSTER})."
+  fi
   log inf "Building '${PROD}${PRODUCT_EXTRA}:${VER}'"
+  log inf "OpenWebRX upstream commit key: ${OWRX_REPO_COMMIT}"
   echo
 
   mkdir -p "${CACHE_DIR}"
@@ -130,6 +193,7 @@ build() {
     2>/dev/null || true # ignore errors if already created
 
   log inf "Building $PROD$PRODUCT_EXTRA from $DOCKERFILE for AMD64, ARM64 and ARM32v7."
+  log inf "Sources fingerprint: ${SOURCES_SCRIPTS_FINGERPRINT}"
   time docker buildx build -f "${DOCKERFILE}" \
     --platform linux/amd64,linux/arm64,linux/arm/v7 \
     --build-context mycache="${CACHE_DIR}" \
@@ -137,6 +201,9 @@ build() {
     --cache-to type=local,dest="${CACHE_DIR}" \
     --build-arg MAKEFLAGS="${MAKEFLAGS}" \
     --build-arg BUILD_DATE="${DATE}" \
+    --build-arg SOURCES_SCRIPTS_FINGERPRINT="${SOURCES_SCRIPTS_FINGERPRINT}" \
+    --build-arg OWRX_REPO_COMMIT="${OWRX_REPO_COMMIT}" \
+    --build-arg FINAL_CACHE_BUSTER="${FINAL_CACHE_BUSTER}" \
     --build-arg PRODUCT="${PROD}${PRODUCT_EXTRA}" \
     --build-arg OWRXVERSION="${VER}" \
     --build-arg APT_PROXY="${APT_PROXY}" \
@@ -155,7 +222,11 @@ build() {
 
   if [[ "${PRODUCT_EXTRA}" != *softmbe* ]]; then
     log inf "Building SoftMBE image $PROD$PRODUCT_EXTRA for AMD64, ARM64 and ARM32v7."
-    build "buildfiles/Dockerfile-softmbe" "${PROD}${PRODUCT_EXTRA}"
+    if [ "$force_final" -eq 1 ]; then
+      build --force-final "buildfiles/Dockerfile-softmbe" "${PROD}${PRODUCT_EXTRA}"
+    else
+      build "buildfiles/Dockerfile-softmbe" "${PROD}${PRODUCT_EXTRA}"
+    fi
   fi
   # time docker buildx build \
   #   --platform linux/amd64,linux/arm64,linux/arm/v7 \
@@ -229,11 +300,11 @@ check-docker
 usage() {
   log war "Usage: $0 [command]"
   log war ". commands:"
-  log war "... build [Dockerfile] - build the image and push to hub.docker.com"
+  log war "... build [--force-final] [Dockerfile] - build and push; force final stage rebuild when requested"
   log war "... run [${DOCKER_HUB_USER}/${PRODUCT}] - run container from latest image"
   log war "... dev [${DOCKER_HUB_USER}/${PRODUCT}] - start container with bash shell"
   log war "... add-admin - to add 'admin' user to the running docker container"
-  log war "... clean - remove the builder and the caches."
+  log war "... clean [--yes] - remove builders, caches, apt-cache stack, and local work/cache folders"
   echo
   log war "You can specify MAKEFLAGS for docker builds:"
   log war "[6[MAKEFLAGS=\"-j4\" $0]]"
