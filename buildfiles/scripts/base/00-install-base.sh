@@ -9,30 +9,24 @@ pinfo "Building base image..."
 pinfo "MAKEFLAGS: ${MAKEFLAGS:-}"
 pinfo "PLATFORM: ${PLATFORM}"
 
-
-# if we have apt proxy, use it through the build process
-# it will be removed for the final image
 if [ -n "${APT_PROXY:-}" ]; then
   pinfo "Setup APT proxy..."
   export http_proxy=${APT_PROXY}
-  # shellcheck disable=SC2086
-  echo 'Acquire::http { Proxy "'${APT_PROXY}'"; };' > /etc/apt/apt.conf.d/51cache
+  cat > /etc/apt/apt.conf.d/51cache << EOF
+Acquire::http { Proxy "${APT_PROXY}"; Timeout "30"; Pipeline-Depth "0"; };
+Acquire::https { Timeout "30"; };
+Acquire::Retries "2";
+EOF
 fi
 
-# ease my life
 cat >> /root/.bashrc << _EOF_
-# remove apt cache, in case it was left from the build
 rm -f /etc/apt/apt.conf.d/51cache
-
-# if docker is started with http_proxy env - we will give it to apt
 if [ -n "\${http_proxy:-}" ]; then echo 'Acquire::http { Proxy "'\${http_proxy:-}'"; };' > /etc/apt/apt.conf.d/51cache; fi
 
-# why is this not the default?!?
 export LS_OPTIONS='--color=auto --group-directories-first -p'
 eval "\$(dircolors -b)"
 alias ls='ls \$LS_OPTIONS'
 
-# safe default
 export TERM=xterm-color
 
 export ENTER_SHELL=1
@@ -51,11 +45,8 @@ alias owrx-start='s6-rc -u change openwebrx'
 export PATH=$PATH:/command
 _EOF_
 
+VERSION_CODENAME="$(detect_version_codename)"
 
-# Detect VERSION_CODENAME from /etc/os-release
-VERSION_CODENAME=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d= -f2 | tr -d '"')
-
-# Enable Debian non-free repositories for modern releases (bookworm, trixie)
 case "$VERSION_CODENAME" in
   bookworm|trixie)
     pinfo "Enabling Debian non-free repositories for $VERSION_CODENAME..."
@@ -79,6 +70,7 @@ case "$VERSION_CODENAME" in
       libomp5-14
       libasound2
       libcurl4
+      libsqlite3-0
     '
     ;;
   trixie)
@@ -100,7 +92,7 @@ case "$VERSION_CODENAME" in
 esac
 
 pinfo "Update apt and install packages..."
-apt update
+apt_update_with_fallback 120
 apt -y install --no-install-recommends \
   wget \
   gpg \
@@ -137,10 +129,7 @@ apt -y install --no-install-recommends \
 pinfo "Add repos and update apt again..."
 wget -O - https://luarvique.github.io/ppa/openwebrx-plus.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/openwebrx-plus.gpg
 echo "deb [signed-by=/etc/apt/trusted.gpg.d/openwebrx-plus.gpg] https://luarvique.github.io/ppa/${VERSION_CODENAME} ./" > /etc/apt/sources.list.d/openwebrx-plus.list
-# wget -O - https://repo.openwebrx.de/debian/key.gpg.txt | gpg --dearmor -o /usr/share/keyrings/openwebrx.gpg
-# echo "deb [signed-by=/usr/share/keyrings/openwebrx.gpg] https://repo.openwebrx.de/debian/ experimental main" > /etc/apt/sources.list.d/openwebrx.list
 
-# if we have a local deb repo in the cache folder
 if [ -d /build_cache/deb/ ]; then
   echo "deb [trusted=yes] file:/build_cache/deb ./" > /etc/apt/sources.list.d/local-repo.list
   apt install -y dpkg-dev apt-utils
@@ -155,14 +144,9 @@ if [ -d /build_cache/deb/ ]; then
   apt remove -y --purge --autoremove dpkg-dev apt-utils
 fi
 
-apt update
+apt_update_with_fallback 120
 apt upgrade -y
 
-
-
-# ---------------------------------------------------------------------
-# S6
-# ---------------------------------------------------------------------
 pinfo "Install S6..."
 MD5SUMS='
 da1e72e50d3b3d4dc8cf45cfce291a3c  s6-overlay-noarch.tar.xz
@@ -186,12 +170,6 @@ tar -Jxpf "s6-overlay-noarch.tar.xz" -C /
 tar -Jxpf "s6-overlay-$S6_ARCH.tar.xz" -C /
 popd
 
-
-
-# ---------------------------------------------------------------------
-# SDRPlay
-# INFO: the SDRPLAY_BINARY is comming from common.sh
-# ---------------------------------------------------------------------
 pinfo "Install SDRPlay..."
 MD5SUMS='
 1be01c3ae870f09e76f61a0a23e69ccf  SDRplay_RSP_API-ARM32-3.07.2.run
@@ -222,7 +200,6 @@ mkdir -p \
   /etc/s6-overlay/s6-rc.d/sdrplay/dependencies.d \
   /etc/s6-overlay/s6-rc.d/user/contents.d
 
-# create codecserver service
 touch /etc/s6-overlay/s6-rc.d/user/contents.d/sdrplay
 echo longrun > /etc/s6-overlay/s6-rc.d/sdrplay/type
 cat > /etc/s6-overlay/s6-rc.d/sdrplay/run << _EOF_
@@ -230,17 +207,11 @@ cat > /etc/s6-overlay/s6-rc.d/sdrplay/run << _EOF_
 /usr/local/bin/sdrplay_apiService
 _EOF_
 chmod +x /etc/s6-overlay/s6-rc.d/sdrplay/run
-
-# link the binary to its location
 ln -sf /opt/sdrplay_api/sdrplay_apiService /usr/local/bin/
 
 popd
 rm -rf /sdrplay
 
-
-# ---------------------------------------------------------------------
-# OWRX+ dependencies
-# ---------------------------------------------------------------------
 pinfo "Install OWRX deps from deb packages..."
 apt-install-depends openwebrx
 apt install -y soapysdr-module-sdrplay3 soapysdr-module-all acarsdec soapysdr-tools dream hackrf soapysdr-module-hackrf sonde-decoders aprs-symbols
@@ -249,7 +220,6 @@ mkdir -p \
   /etc/s6-overlay/s6-rc.d/codecserver/dependencies.d \
   /etc/s6-overlay/s6-rc.d/user/contents.d
 
-# create codecserver service
 touch /etc/s6-overlay/s6-rc.d/user/contents.d/codecserver
 echo longrun > /etc/s6-overlay/s6-rc.d/codecserver/type
 cat > /etc/s6-overlay/s6-rc.d/codecserver/run << _EOF_
@@ -257,7 +227,6 @@ cat > /etc/s6-overlay/s6-rc.d/codecserver/run << _EOF_
 /usr/bin/codecserver
 _EOF_
 chmod +x /etc/s6-overlay/s6-rc.d/codecserver/run
-
 
 pwarn "Tiny image..."
 SUDO_FORCE_REMOVE=yes apt remove --allow-remove-essential -y --purge --autoremove --ignore-missing \

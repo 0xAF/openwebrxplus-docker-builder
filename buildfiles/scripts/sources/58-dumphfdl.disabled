@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="dumphfdl"
+REPO_URL="https://github.com/szpajder/dumphfdl.git"
+REF="v1.4.1"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/bin/dumphfdl"; then
+  pinfo "Install DumpHFDL..."
+  git_ensure_repo "dumphfdl" "$REPO_URL"
+  git_checkout_ref "dumphfdl" "$REF"
+
+  cmakebuild dumphfdl "$REF"
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/bin/dumphfdl"
+fi

@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="radiosonde-auto-rx"
+REPO_URL="https://github.com/projecthorus/radiosonde_auto_rx"
+REF="master"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" \
+  "$BUILD_ROOTFS/usr/local/bin/dfm09mod" \
+  "$BUILD_ROOTFS/usr/local/bin/dft_detect" \
+  "$BUILD_ROOTFS/usr/local/bin/fsk_demod" \
+  "$BUILD_ROOTFS/usr/local/bin/imet4iq" \
+  "$BUILD_ROOTFS/usr/local/bin/imet54mod" \
+  "$BUILD_ROOTFS/usr/local/bin/iq_dec" \
+  "$BUILD_ROOTFS/usr/local/bin/lms6Xmod" \
+  "$BUILD_ROOTFS/usr/local/bin/m10mod" \
+  "$BUILD_ROOTFS/usr/local/bin/m20mod" \
+  "$BUILD_ROOTFS/usr/local/bin/meisei100mod" \
+  "$BUILD_ROOTFS/usr/local/bin/mk2a1680mod" \
+  "$BUILD_ROOTFS/usr/local/bin/mp3h1mod" \
+  "$BUILD_ROOTFS/usr/local/bin/mts01mod" \
+  "$BUILD_ROOTFS/usr/local/bin/rs41mod" \
+  "$BUILD_ROOTFS/usr/local/bin/rs92mod" \
+  "$BUILD_ROOTFS/usr/local/bin/weathex301d"; then
+  pinfo "Install RadioSonde Auto_RX..."
+  git_ensure_repo "radiosonde_auto_rx" "$REPO_URL"
+  git_checkout_ref "radiosonde_auto_rx" "$REF"
+
+  pushd radiosonde_auto_rx/auto_rx/
+  ./build.sh
+  cp dfm09mod dft_detect fsk_demod imet4iq imet54mod iq_dec lms6Xmod m10mod m20mod meisei100mod mk2a1680mod mp3h1mod mts01mod rs41mod rs92mod weathex301d "$BUILD_ROOTFS/usr/local/bin/"
+  popd
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" \
+    "$BUILD_ROOTFS/usr/local/bin/dfm09mod" \
+    "$BUILD_ROOTFS/usr/local/bin/dft_detect" \
+    "$BUILD_ROOTFS/usr/local/bin/fsk_demod" \
+    "$BUILD_ROOTFS/usr/local/bin/imet4iq" \
+    "$BUILD_ROOTFS/usr/local/bin/imet54mod" \
+    "$BUILD_ROOTFS/usr/local/bin/iq_dec" \
+    "$BUILD_ROOTFS/usr/local/bin/lms6Xmod" \
+    "$BUILD_ROOTFS/usr/local/bin/m10mod" \
+    "$BUILD_ROOTFS/usr/local/bin/m20mod" \
+    "$BUILD_ROOTFS/usr/local/bin/meisei100mod" \
+    "$BUILD_ROOTFS/usr/local/bin/mk2a1680mod" \
+    "$BUILD_ROOTFS/usr/local/bin/mp3h1mod" \
+    "$BUILD_ROOTFS/usr/local/bin/mts01mod" \
+    "$BUILD_ROOTFS/usr/local/bin/rs41mod" \
+    "$BUILD_ROOTFS/usr/local/bin/rs92mod" \
+    "$BUILD_ROOTFS/usr/local/bin/weathex301d"
+fi

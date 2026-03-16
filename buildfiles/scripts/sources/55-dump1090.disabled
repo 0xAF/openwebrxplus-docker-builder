@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="dump1090"
+REPO_URL="https://github.com/flightaware/dump1090"
+REF="v8.2"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/bin/dump1090"; then
+  pinfo "Install Dump1090..."
+  git_ensure_repo "dump1090" "$REPO_URL"
+  git_checkout_ref "dump1090" "$REF"
+
+  pushd dump1090
+  make
+  install -D -m 0755 dump1090 "$BUILD_ROOTFS/usr/local/bin/"
+  popd
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/bin/dump1090"
+fi

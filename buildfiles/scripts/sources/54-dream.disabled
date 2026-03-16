@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source /common.sh
+
+SCRIPT_VERSION="1"
+COMPONENT="dream"
+REPO_URL="https://downloads.sourceforge.net/project/drm/dream/2.1.1/dream-2.1.1-svn808.tar.gz"
+REF="2.1.1-svn808"
+
+if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/bin/dream"; then
+  pinfo "Install DRM..."
+  if [ ! -d "dream" ]; then
+    rm -f dream-2.1.1-svn808.tar.gz
+    wget https://downloads.sourceforge.net/project/drm/dream/2.1.1/dream-2.1.1-svn808.tar.gz
+    tar xvfz dream-2.1.1-svn808.tar.gz
+    pushd dream
+    patch -Np0 < /files/dream/dream.patch
+    popd
+  fi
+
+  pushd dream
+  qmake CONFIG+=console
+  make
+  install -D -m 0755 dream "$BUILD_ROOTFS/usr/local/bin/"
+  popd
+
+  cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/bin/dream"
+fi
