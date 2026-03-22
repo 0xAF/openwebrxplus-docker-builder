@@ -13,6 +13,7 @@ if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_CACHE/we
   pinfo "Install WebRX Rade Decode Minimal..."
   git_ensure_repo "radae_decoder" "$REPO_URL"
   git_checkout_ref "radae_decoder" "$REF"
+  git -C radae_decoder submodule update --init --recursive
 
   pushd radae_decoder
   arch="$(dpkg --print-architecture)"
