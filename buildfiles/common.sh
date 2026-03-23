@@ -4,7 +4,9 @@
 : ${TERM:=xterm-color}
 export TERM
 
-set -euo pipefail
+if [ -z "${ENTER_SHELL:-}" ]; then
+  set -euo pipefail
+fi
 
 function perror() { printf "\e[38;5;15;48;5;1m[+] %-85s\e[0m\n" "$*"; }
 function pok() { printf "\e[38;5;15;48;5;34m[+] %-85s\e[0m\n" "$*"; }
@@ -32,19 +34,18 @@ case `uname -m` in
     ;;
 esac
 
-if [ ! -d /build_cache ]; then
+if [ -d /build_cache ]; then
+  export BUILD_CACHE="${BUILD_CACHE:-/build_cache/`uname -m`}"
+  export BUILD_ROOTFS="${BUILD_ROOTFS:-${BUILD_CACHE}/rootfs}"
+  mkdir -p "$BUILD_CACHE" "$BUILD_ROOTFS"
+  if [ -z "${ENTER_SHELL:-}" ]; then
+    cd "$BUILD_CACHE"
+  fi
+elif [ -z "${ENTER_SHELL:-}" ]; then
   echo;echo;echo;
   perror "ERROR: This build must have a volume mounted in /build_cache"
   echo;echo;echo
   exit 1
-fi
-
-export BUILD_CACHE="${BUILD_CACHE:-/build_cache/`uname -m`}"
-export BUILD_ROOTFS="${BUILD_ROOTFS:-${BUILD_CACHE}/rootfs}"
-mkdir -p "$BUILD_CACHE" "$BUILD_ROOTFS"
-
-if [ -z "${ENTER_SHELL:-}" ]; then
-  cd "$BUILD_CACHE"
 fi
 
 function cmakebuild() {
