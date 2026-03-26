@@ -89,7 +89,7 @@ docker run -d --name owrxp \
     -e HEALTHCHECK_USB_0BDA_2838=2 \
     -e HEALTHCHECK_SDR_DEVICES=4 \
     --restart unless-stopped \
-    slechev/openwebrxplus-softmbe
+    xnetinho/openwebrxplus-softmbe
 ```
 
 ---
@@ -101,7 +101,7 @@ Save as `/opt/owrx-docker/docker-compose.yml`:
 ```yaml
 services:
   owrx:
-    image: 'slechev/openwebrxplus-softmbe:latest'
+    image: 'xnetinho/openwebrxplus-softmbe:latest'
     container_name: owrx-mbe
     restart: unless-stopped
     ports:
