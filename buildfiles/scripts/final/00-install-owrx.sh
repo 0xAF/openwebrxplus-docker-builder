@@ -2,7 +2,12 @@
 set -euo pipefail
 
 # shellcheck disable=SC1091
+# Final stage doesn't need /build_cache — artifacts come via COPY --from=sources.
+# Create a dummy /build_cache so common.sh doesn't error out.
+mkdir -p /build_cache
 source /common.sh
+
+ARTIFACTS="/build_artifacts"
 
 echo;echo;echo;echo;echo;echo;echo
 pinfo "Building ${PRODUCT:-}:${OWRXVERSION:-}..."
@@ -23,25 +28,25 @@ apt_update_with_fallback 120
 apt upgrade -y
 
 pinfo "Installing prebuilt deb packages..."
-dpkg -i "$BUILD_CACHE"/librtlsdr0_*.deb
-dpkg -i "$BUILD_CACHE"/rtl-sdr_*.deb
+dpkg -i "$ARTIFACTS"/librtlsdr0_*.deb
+dpkg -i "$ARTIFACTS"/rtl-sdr_*.deb
 if [[ $(uname -m) != "armv7"* ]]; then
-  dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-airspyhf_*.deb
-  dpkg -i "$BUILD_CACHE"/soapysdr-module-airspyhf_*.deb
+  dpkg -i "$ARTIFACTS"/soapysdr0.8-module-airspyhf_*.deb
+  dpkg -i "$ARTIFACTS"/soapysdr-module-airspyhf_*.deb
 fi
-dpkg -i "$BUILD_CACHE"/soapysdr0.8-module-plutosdr_*.deb
-dpkg -i "$BUILD_CACHE"/soapysdr-module-plutosdr_*.deb
-dpkg -i "$BUILD_CACHE"/runds-connector_*.deb
-dpkg -i "$BUILD_CACHE"/webrx-rade-decode-minimal*.deb
+dpkg -i "$ARTIFACTS"/soapysdr0.8-module-plutosdr_*.deb
+dpkg -i "$ARTIFACTS"/soapysdr-module-plutosdr_*.deb
+dpkg -i "$ARTIFACTS"/runds-connector_*.deb
+dpkg -i "$ARTIFACTS"/webrx-rade-decode-minimal*.deb
 
-if [ -x "$BUILD_ROOTFS/usr/bin/satdump" ]; then
-  pinfo "SatDump detected in source rootfs cache and will be included in final image."
+if [ -x "$ARTIFACTS/rootfs/usr/bin/satdump" ]; then
+  pinfo "SatDump detected in build artifacts and will be included in final image."
 else
-  pwarn "SatDump binary not found in source rootfs cache."
+  pwarn "SatDump binary not found in build artifacts."
 fi
 
 pinfo "Installing rest of the binaries from rootfs..."
-cp -av "$BUILD_ROOTFS"/* /
+cp -av "$ARTIFACTS"/rootfs/* /
 sleep 3
 ldconfig /etc/ld.so.conf.d
 

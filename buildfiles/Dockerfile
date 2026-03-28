@@ -7,7 +7,7 @@ COPY common.sh /
 COPY scripts/base /scripts/base
 #--mount=type=cache,target=/var/cache/apt \
 RUN --mount=type=cache,id=owrxp-buildcache-bookworm,target=/build_cache \
-	bash -lc 'source /common.sh && run_numbered_scripts /scripts/base'
+	bash -c 'source /common.sh && run_numbered_scripts /scripts/base'
 
 FROM base AS sources
 ARG MAKEFLAGS
@@ -18,7 +18,7 @@ COPY --from=golang:bookworm /usr/local/go /usr/local/go
 #--mount=type=cache,target=/var/cache/apt \
 RUN --mount=type=cache,id=owrxp-buildcache-bookworm,target=/build_cache \
     --mount=type=bind,source=files,target=/files \
-	bash -lc 'echo "${SOURCES_SCRIPTS_FINGERPRINT}" > /build-sources-scripts-fingerprint && source /common.sh && run_numbered_scripts /scripts/sources'
+	bash -c 'echo "${SOURCES_SCRIPTS_FINGERPRINT}" > /build-sources-scripts-fingerprint && source /common.sh && run_numbered_scripts /scripts/sources'
 
 FROM base AS final
 ARG PRODUCT=openwebrxplus
@@ -31,11 +31,11 @@ ARG FINAL_CACHE_BUSTER
 #ARG BUILD_SHA
 COPY scripts/final /scripts/final
 COPY /files/run.sh /run.sh
-# Keep final clean from sources image contents while still forcing sources stage evaluation.
+# Copy build artifacts from sources stage via layer (not cache mount, which can desync).
 COPY --from=sources /build-sources-scripts-fingerprint /build-sources-scripts-fingerprint
+COPY --from=sources /build_artifacts /build_artifacts
 #--mount=type=cache,target=/var/cache/apt \
-RUN --mount=type=cache,id=owrxp-buildcache-bookworm,target=/build_cache \
-	bash -lc 'source /common.sh && run_numbered_scripts /scripts/final'
+RUN bash -c 'mkdir -p /build_cache && source /common.sh && run_numbered_scripts /scripts/final'
 
 COPY /files/healthcheck.sh /healthcheck.sh
 RUN chmod +x /healthcheck.sh
