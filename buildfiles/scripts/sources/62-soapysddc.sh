@@ -4,8 +4,8 @@ set -euo pipefail
 # shellcheck disable=SC1091
 source /common.sh
 
-if [[ $(uname -m) == "armv7"* ]]; then
-  pinfo "Skipping SoapySDDC for armv7..."
+if [[ $(uname -m) == "armv7"* ]] || [[ $(uname -m) == "aarch64"* ]]; then
+  pinfo "Skipping SoapySDDC for $(uname -m)..."
   exit 0
 fi
 
