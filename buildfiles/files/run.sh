@@ -74,11 +74,59 @@ EOT
 create_socat_links
 
 _term() {
-  echo "Caught signal!"
-  kill -TERM "$child" 2>/dev/null
+  local sig="${1:-UNKNOWN}"
+  echo "+++ run.sh received ${sig}; pid=$$ ppid=$PPID child=${child:-n/a}"
+
+  if [[ -r "/proc/${PPID}/comm" ]]; then
+    echo "+++ Parent process: $(cat "/proc/${PPID}/comm") (pid=${PPID})"
+  fi
+  if [[ -r "/proc/${PPID}/cmdline" ]]; then
+    echo "+++ Parent cmdline: $(tr '\0' ' ' < "/proc/${PPID}/cmdline")"
+  fi
+
+  if [[ -r /proc/1/comm ]]; then
+    echo "+++ PID 1 inside container: $(cat /proc/1/comm)"
+  fi
+
+  # Useful to correlate whether PID 1/supervisor asked us to stop.
+  ps -o pid,ppid,stat,comm,args -p 1 -p $$ ${child:+-p "$child"} 2>/dev/null || true
+
+  if command -v s6-svstat >/dev/null 2>&1 && [[ -d /run/service ]]; then
+    echo "+++ s6 service states at signal time:"
+    for svc in /run/service/*; do
+      [[ -d "$svc" ]] || continue
+      s6-svstat "$svc" 2>/dev/null || true
+    done
+  fi
+
+  if [[ -n "${child:-}" ]]; then
+    kill -TERM "$child" 2>/dev/null
+  fi
 }
 
-trap _term SIGTERM SIGINT
+trap '_term SIGTERM' SIGTERM
+trap '_term SIGINT' SIGINT
+
+log_termination_debug() {
+  local status="$1"
+
+  echo "+++ OpenWebRX+ terminated with exit status: ${status}"
+
+  if (( status >= 128 )); then
+    local sig=$((status - 128))
+    # shellcheck disable=SC2155
+    local sig_name="$(kill -l "${sig}" 2>/dev/null || true)"
+    if [[ -n "${sig_name}" ]]; then
+      echo "+++ Likely terminated by signal ${sig} (${sig_name})."
+    else
+      echo "+++ Likely terminated by signal ${sig}."
+    fi
+  fi
+
+  if (( status == 137 || status == 143 )); then
+    echo "+++ Hint: status ${status} often means SIGKILL/SIGTERM (OOM kill, docker stop, or external kill)."
+  fi
+}
 
 echo "+++ List of processes before OWRX start..."
 ps xa
@@ -98,4 +146,14 @@ openwebrx() {
 openwebrx $@ &
 
 child=$!
+set +e
 wait "$child"
+owrx_status=$?
+set -e
+
+log_termination_debug "$owrx_status"
+
+echo "+++ List of processes after OWRX termination..."
+ps xa
+echo "+++ Exiting container."
+exit "$owrx_status"
