@@ -1,11 +1,28 @@
 #!/bin/bash
 set -euxo pipefail
 
-echo "+ Install libmbe..."
-dpkg -i /deb/libmbe1_1.3*.deb
+MBELIB_VARIANT="$(cat /deb/mbelib-variant)"
+install -m 0644 /deb/mbelib-variant /build-mbelib-variant
+
+case "$MBELIB_VARIANT" in
+	legacy)
+		echo "+ Install legacy libmbe..."
+		dpkg -i /deb/libmbe1_1.3*.deb
+		ADAPTER_PACKAGES=(/deb/codecserver-driver-softmbe_0.0.1_*.deb)
+		;;
+	neo-v2)
+		echo "+ Install mbelib-neo v2..."
+		dpkg -i /deb/libmbe-neo2_2.0.0_*.deb
+		ADAPTER_PACKAGES=(/deb/codecserver-driver-softmbe-neo_0.0.2_*.deb)
+		;;
+	*)
+		echo "Unknown mbelib variant: $MBELIB_VARIANT" >&2
+		exit 2
+		;;
+esac
 
 echo "+ Install codecserver-softmbe driver..."
-dpkg -i /deb/codecserver-driver-softmbe_0.0.1_*.deb
+dpkg -i "${ADAPTER_PACKAGES[@]}"
 
 rm -rf /deb
 

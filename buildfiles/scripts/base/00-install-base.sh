@@ -186,7 +186,8 @@ if [ -f "$SDRPLAY_BINARY" ] && echo "$MD5SUMS" | md5sum --ignore-missing -c; the
 else
   pinfo "downloading $SDRPLAY_BINARY"
   rm -f "$SDRPLAY_BINARY"
-  wget --no-http-keep-alive "https://www.sdrplay.com/software/$SDRPLAY_BINARY"
+  #wget --no-http-keep-alive "https://www.sdrplay.com/software/$SDRPLAY_BINARY"
+  cp /files/vendor/$SDRPLAY_BINARY .
 fi
 sh "$SDRPLAY_BINARY" --noexec --target sdrplay
 patch --verbose -Np0 < "/sdrplay-patch/$SDRPLAY_BINARY.patch"

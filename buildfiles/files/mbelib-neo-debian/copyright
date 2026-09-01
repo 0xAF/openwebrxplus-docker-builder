@@ -1,0 +1,18 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: mbelib-neo
+Source: https://github.com/arancormonk/mbelib-neo
+
+Files: *
+Copyright: 2025 arancormonk
+           2010 mbelib Author
+License: GPL-2+
+ On Debian systems, the complete text of the GNU General Public License
+ version 2 can be found in /usr/share/common-licenses/GPL-2.
+
+Files: src/external/pffft/*
+Copyright: 2013 Julien Pommier
+           2004 University Corporation for Atmospheric Research
+License: BSD-3-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the conditions retained in the
+ upstream source headers are met.

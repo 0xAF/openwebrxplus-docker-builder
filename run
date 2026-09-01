@@ -155,6 +155,12 @@ build() {
     PRODUCT_EXTRA="${DOCKERFILE#*Dockerfile}"
   fi
 
+  local EXTRA_BUILD_ARGS
+  EXTRA_BUILD_ARGS=()
+  if [[ "${DOCKERFILE}" == *Dockerfile-softmbe ]]; then
+    EXTRA_BUILD_ARGS+=(--build-arg "USE_LEGACY_MBELIB=${USE_LEGACY_MBELIB:-n}")
+  fi
+
   local CACHE_DIR
   CACHE_DIR="${PROD}${PRODUCT_EXTRA}"
   CACHE_DIR=${CACHE_DIR//[^a-zA-Z0-9._-]/_} # sanitize
@@ -207,6 +213,7 @@ build() {
     --build-arg PRODUCT="${PROD}${PRODUCT_EXTRA}" \
     --build-arg OWRXVERSION="${VER}" \
     --build-arg APT_PROXY="${APT_PROXY}" \
+    "${EXTRA_BUILD_ARGS[@]}" \
     -t "${DOCKER_HUB_USER}"/"${PROD}${PRODUCT_EXTRA}":"${VER}" \
     -t "${DOCKER_HUB_USER}"/"${PROD}${PRODUCT_EXTRA}" \
     --pull \

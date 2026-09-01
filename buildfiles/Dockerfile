@@ -7,6 +7,7 @@ COPY common.sh /
 COPY scripts/base /scripts/base
 #--mount=type=cache,target=/var/cache/apt \
 RUN --mount=type=cache,id=owrxp-buildcache-bookworm,target=/build_cache \
+	--mount=type=bind,source=files,target=/files \
 	bash -c 'source /common.sh && run_numbered_scripts /scripts/base'
 
 FROM base AS sources
@@ -56,5 +57,4 @@ VOLUME /var/lib/openwebrx
 # CMD ["/bin/bash"]
 
 EXPOSE 8073
-
 

@@ -1,0 +1,5 @@
+usr/include/mbelib-neo
+usr/lib/*/libmbe-neo.a
+usr/lib/*/libmbe-neo.so
+usr/lib/*/cmake/mbe-neo
+usr/lib/*/pkgconfig/libmbe-neo.pc

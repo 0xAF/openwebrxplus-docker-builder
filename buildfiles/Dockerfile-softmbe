@@ -1,8 +1,11 @@
 FROM debian:bookworm-slim AS build
 ARG MAKEFLAGS
-COPY build-softmbe-packages.sh common.sh /
+ARG USE_LEGACY_MBELIB=n
+COPY build-softmbe-packages.sh common.sh prepare-mbelib-neo-debian.sh /
+COPY files/mbelib-neo-debian /mbelib-neo-debian
 RUN --mount=type=cache,id=owrxp-buildcache-softmbe,target=/build_cache \
-	/build-softmbe-packages.sh && rm -f /build-softmbe-packages.sh
+	USE_LEGACY_MBELIB="${USE_LEGACY_MBELIB}" /build-softmbe-packages.sh && \
+	rm -f /build-softmbe-packages.sh /prepare-mbelib-neo-debian.sh
 
 FROM slechev/openwebrxplus:latest
 ARG ARCH

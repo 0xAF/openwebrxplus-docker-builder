@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DMBELIB_BUILD_TESTS=OFF \
+		-DMBELIB_BUILD_EXAMPLES=OFF \
+		-DMBELIB_BUILD_DOCS=OFF \
+		-DMBELIB_WARNINGS_AS_ERRORS=OFF

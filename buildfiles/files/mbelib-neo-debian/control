@@ -1,0 +1,34 @@
+Source: libmbe-neo
+Section: libs
+Priority: optional
+Maintainer: Stanislav Lechev <af@0xAF.org>
+Build-Depends: debhelper-compat (= 13), cmake (>= 3.20)
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/arancormonk/mbelib-neo
+Vcs-Git: https://github.com/arancormonk/mbelib-neo.git
+Vcs-Browser: https://github.com/arancormonk/mbelib-neo
+
+Package: libmbe-neo-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: libmbe-neo2 (= ${binary:Version}), ${misc:Depends}
+Description: MBE vocoder library - development files
+ mbelib-neo provides IMBE and AMBE vocoder primitives used by digital radio
+ applications.
+ .
+ This package contains the headers, static library, pkg-config metadata and
+ CMake package configuration.
+
+Package: libmbe-neo2
+Section: libs
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: MBE vocoder library - runtime
+ mbelib-neo provides IMBE and AMBE vocoder primitives used by digital radio
+ applications.
+ .
+ This package contains the shared runtime library.

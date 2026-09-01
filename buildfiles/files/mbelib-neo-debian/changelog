@@ -1,0 +1,5 @@
+libmbe-neo (2.0.0) unstable; urgency=medium
+
+  * Package mbelib-neo v2 for the OpenWebRX+ SoftMBE image.
+
+ -- Stanislav Lechev <af@0xaf.org>  Tue, 01 Sep 2026 12:00:00 +0300
