@@ -1,0 +1,11 @@
+diff --git a/FindLibAIRSPYHF.cmake b/FindLibAIRSPYHF.cmake
+--- a/FindLibAIRSPYHF.cmake
++++ b/FindLibAIRSPYHF.cmake
+@@ -22,1 +22,7 @@
++# On some multiarch builds find_library misses a library that pkg-config
++# and the linker can find. Keep pkg-config's complete linker flags as a fallback.
++IF(NOT LIBAIRSPYHF_LIBRARIES AND PC_LIBAIRSPYHF_FOUND)
++    SET(LIBAIRSPYHF_LIBRARIES ${PC_LIBAIRSPYHF_LDFLAGS})
++ENDIF()
++
+ INCLUDE(FindPackageHandleStandardArgs)

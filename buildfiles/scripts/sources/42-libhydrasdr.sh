@@ -9,15 +9,16 @@ if [[ $(uname -m) == "armv7"* ]]; then
   exit 0
 fi
 
-SCRIPT_VERSION="1"
+SCRIPT_VERSION="2"
 COMPONENT="libhydrasdr"
 REPO_URL="https://github.com/hydrasdr/rfone_host"
-REF="master"
+REF="main"
 
 if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_ROOTFS/usr/local/lib/libhydrasdr.so*"; then
   pinfo "Install libhydrasdr (rfone_host)..."
   git_ensure_repo "rfone_host" "$REPO_URL"
   git_checkout_ref "rfone_host" "$REF"
+  patch -d rfone_host -p1 < /files/hydrasdr/pkgconfig-libusb.patch
   cmakebuild rfone_host
   cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_ROOTFS/usr/local/lib/libhydrasdr.so*"
 fi

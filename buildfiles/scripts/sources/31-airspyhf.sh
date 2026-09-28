@@ -9,7 +9,7 @@ if [[ $(uname -m) == "armv7"* ]]; then
   exit 0
 fi
 
-SCRIPT_VERSION="1"
+SCRIPT_VERSION="2"
 COMPONENT="soapy-airspyhf"
 REPO_URL="https://github.com/pothosware/SoapyAirspyHF.git"
 REF="master"
@@ -20,6 +20,7 @@ if cache_component_should_build "$COMPONENT" "$REPO_URL" "$REF" "$BUILD_CACHE/so
   git_checkout_ref "SoapyAirspyHF" "$REF"
   pushd SoapyAirspyHF
   patch -p1 < /files/airspy/version.patch || true
+  patch -p1 < /files/airspy/pkgconfig-library.patch
   dpkg-buildpackage -b
   popd
   cache_component_record "$COMPONENT" "$REPO_URL" "$REF" "$SCRIPT_VERSION" "$BUILD_CACHE/soapysdr0.8-module-airspyhf_*.deb" "$BUILD_CACHE/soapysdr-module-airspyhf_*.deb"

@@ -1,0 +1,11 @@
+diff --git a/cmake/modules/FindLIBUSB.cmake b/cmake/modules/FindLIBUSB.cmake
+--- a/cmake/modules/FindLIBUSB.cmake
++++ b/cmake/modules/FindLIBUSB.cmake
+@@ -50,1 +50,7 @@
++# pkg-config can provide working linker flags when find_library misses the
++# library on a multiarch system.
++if(NOT LIBUSB_LIBRARIES AND PC_LIBUSB_FOUND)
++  set(LIBUSB_LIBRARIES ${PC_LIBUSB_LDFLAGS})
++endif()
++
+ include(FindPackageHandleStandardArgs)
