@@ -167,6 +167,17 @@ cache_pattern_exists() {
   compgen -G "$pattern" >/dev/null
 }
 
+require_artifacts() {
+  local pattern
+
+  for pattern in "$@"; do
+    if ! cache_pattern_exists "$pattern"; then
+      perror "Required build artifact missing: $pattern"
+      return 1
+    fi
+  done
+}
+
 cache_restore_component() {
   local component="$1"
   local snapshot_dir
