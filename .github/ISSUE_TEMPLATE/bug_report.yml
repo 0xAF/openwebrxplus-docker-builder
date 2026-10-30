@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a problem with the Docker images, Compose installation or image build.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [installation guide](https://github.com/0xAF/openwebrxplus-docker-builder/blob/main/docker.md)
+        and existing issues first. Remove passwords and tokens from configuration and logs.
+  - type: dropdown
+    id: image
+    attributes:
+      label: Image
+      options:
+        - slechev/openwebrxplus
+        - slechev/openwebrxplus-softmbe
+        - Custom build
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Image tag and OpenWebRX+ version
+      description: Include the image digest or build commit if available.
+      placeholder: "latest, OpenWebRX+ v1.2.x; or custom build commit"
+    validations:
+      required: true
+  - type: textarea
+    id: platform
+    attributes:
+      label: Host and Docker environment
+      description: Host OS, CPU architecture, Docker Engine version and Docker Compose version.
+      placeholder: "Debian 12, arm64, Docker Engine ..., Docker Compose ..."
+    validations:
+      required: true
+  - type: input
+    id: receivers
+    attributes:
+      label: SDR hardware
+      description: Receiver models and connection type, if relevant.
+      placeholder: "RTL-SDR Blog V4 over USB, SDRplay RSP1A"
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include the command or receiver action that triggers the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: What should happen, and what happens instead?
+    validations:
+      required: true
+  - type: textarea
+    id: compose
+    attributes:
+      label: Relevant Compose configuration
+      description: Paste the relevant service configuration with passwords and tokens removed.
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Include startup or error logs, for example from docker compose logs --tail=100 owrx. For build failures, include the failing build step.
+      render: text

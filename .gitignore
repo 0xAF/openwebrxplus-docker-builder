@@ -3,4 +3,5 @@ work/
 apt-cache/apt-cacher-ng/
 .vscode/
 old/
+.env
 buildfiles/files/vendor/*.run

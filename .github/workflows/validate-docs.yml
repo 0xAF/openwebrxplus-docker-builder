@@ -1,0 +1,87 @@
+name: Validate installation documentation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate Compose for both images
+        env:
+          OPENWEBRX_ADMIN_PASSWORD: ci-validation-only
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          command = ["docker", "compose", "--env-file", ".env.example", "config"]
+          empty_env = dict(os.environ, OPENWEBRX_ADMIN_PASSWORD="")
+          result = subprocess.run(command + ["--quiet"], env=empty_env, capture_output=True, text=True)
+          if result.returncode == 0 or "Set OPENWEBRX_ADMIN_PASSWORD" not in result.stderr:
+              raise SystemExit("Compose must reject an empty admin password")
+
+          for image in ("slechev/openwebrxplus:latest", "slechev/openwebrxplus-softmbe:latest"):
+              result = subprocess.run(
+                  command + ["--format", "json"],
+                  env=dict(os.environ, OWRX_IMAGE=image),
+                  check=True, capture_output=True, text=True,
+              )
+              config = json.loads(result.stdout)
+              if config["services"]["owrx"]["image"] != image:
+                  raise SystemExit(f"Compose did not select {image}")
+              print(f"Valid Compose configuration: {image}")
+          PY
+
+      - name: Check local Markdown links and shell examples
+        run: |
+          python3 - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+          from urllib.parse import unquote, urlsplit
+
+          documents = [Path(name) for name in ("README.md", "docker.md", "docker-hub.md")]
+          documents.extend(sorted(Path(".github").glob("*.md")))
+
+          def prose(text):
+              return re.sub(r"^```.*?^```[^\n]*(?:\n|$)", "", text, flags=re.M | re.S)
+
+          def anchors(path):
+              result = set()
+              counts = {}
+              for heading in re.findall(r"^#{1,6}\s+(.+?)\s*#*\s*$", prose(path.read_text()), re.M):
+                  slug = re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
+                  count = counts.get(slug, 0)
+                  counts[slug] = count + 1
+                  result.add(f"{slug}-{count}" if count else slug)
+              return result
+
+          for document in documents:
+              text = document.read_text()
+              if len(re.findall(r"^```", text, re.M)) % 2:
+                  raise SystemExit(f"{document}: unclosed Markdown code fence")
+              for destination in re.findall(r"\]\(([^)]+)\)", prose(text)):
+                  link = urlsplit(destination)
+                  if link.scheme or link.netloc:
+                      continue
+                  target = document.parent / unquote(link.path) if link.path else document
+                  if not target.exists():
+                      raise SystemExit(f"{document}: missing local target {destination}")
+                  if link.fragment and target.suffix == ".md" and unquote(link.fragment) not in anchors(target):
+                      raise SystemExit(f"{document}: missing section {destination}")
+              for script in re.findall(r"^```sh\n(.*?)^```", text, re.M | re.S):
+                  subprocess.run(["bash", "-n"], input=script, text=True, check=True)
+              print(f"Valid local links and shell syntax: {document}")
+          PY

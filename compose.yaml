@@ -1,0 +1,38 @@
+services:
+  owrx:
+    image: ${OWRX_IMAGE:-slechev/openwebrxplus:latest}
+    container_name: owrxp
+    restart: unless-stopped
+    labels:
+      autoheal: "true"
+    ports:
+      - "${OWRX_HTTP_PORT:-8073}:8073"
+      # For rtl_tcp forwarding, also enable FORWARD_LOCALPORT_1234 below.
+      # - "5678:5678"
+    environment:
+      TZ: ${TZ:-Europe/Sofia}
+      OPENWEBRX_ADMIN_USER: ${OPENWEBRX_ADMIN_USER:-admin}
+      OPENWEBRX_ADMIN_PASSWORD: ${OPENWEBRX_ADMIN_PASSWORD:?Set OPENWEBRX_ADMIN_PASSWORD in .env}
+      HEALTHCHECK_SDR_DEVICES: ${HEALTHCHECK_SDR_DEVICES:-0}
+      # Enable and adjust USB counts for your hardware after configuring OWRX.
+      # HEALTHCHECK_USB_0BDA_2838: "2"
+      # HEALTHCHECK_USB_1DF7_3000: "1"
+      # FORWARD_LOCALPORT_1234: "5678"
+    device_cgroup_rules:
+      - "c 189:* rwm"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - ./etc:/etc/openwebrx
+      - ./var:/var/lib/openwebrx
+      - ./plugins:/usr/lib/python3/dist-packages/htdocs/plugins
+    # Keep temporary decoder files in memory, including on SD-card installations.
+    tmpfs:
+      - /tmp:mode=1777
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    restart: always
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

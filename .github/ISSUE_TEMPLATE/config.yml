@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation and configuration guide
+    url: https://github.com/0xAF/openwebrxplus-docker-builder/blob/main/docker.md
+    about: Docker Compose setup, image selection, configuration, backup and restore.
+  - name: Support and upstream projects
+    url: https://github.com/0xAF/openwebrxplus-docker-builder/blob/main/.github/SUPPORT.md
+    about: Find the right place for image, OpenWebRX+ and plugin questions.
+  - name: OpenWebRX+ community chat
+    url: https://t.me/openwebrx_chat
+    about: Ask general receiver setup and usage questions.
